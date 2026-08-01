@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(npm *)",
+      "PowerShell(node scripts/generate-icons.mjs; Get-ChildItem public\\\\icons | Select-Object Name,Length)",
+      "PowerShell(Remove-Item *)",
+      "PowerShell(Set-Content *)",
+      "Skill(claude-api)",
+      "PowerShell(node -e \"const p=require\\('./node_modules/@anthropic-ai/sdk/package.json'\\); console.log\\(p.version\\)\")",
+      "PowerShell(node -e \"const t=require\\('fs'\\).readFileSync\\('./node_modules/@anthropic-ai/sdk/resources/messages/messages.d.ts','utf8'\\); console.log\\('output_config:', t.includes\\('output_config'\\)\\); console.log\\('OutputConfig iface:', \\(t.match\\(/interface OutputConfig[\\\\s\\\\S]{0,600}/\\)||['none']\\)[0]\\);\")",
+      "PowerShell(node -e \"const t=require\\('fs'\\).readFileSync\\('./node_modules/@anthropic-ai/sdk/resources/messages/messages.d.ts','utf8'\\); console.log\\(\\(t.match\\(/interface JSONOutputFormat[\\\\s\\\\S]{0,700}/\\)||['none']\\)[0]\\);\")",
+      "PowerShell(Stop-Job *)",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 25)"
+    ]
+  }
+}

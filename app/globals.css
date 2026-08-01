@@ -1,0 +1,145 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #05070a;
+  --foreground: #e2e8f0;
+  --surface: #0f172a;
+  --surface-border: #1e293b;
+  --accent: #38bdf8;
+  --vip: #10b981;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    /* Belt-and-braces against a stray wide child causing page-level pan. */
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-canvas text-foreground font-sans antialiased;
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading tracking-tight;
+  }
+
+  /* iOS shows a grey flash on tap; the :active states already give feedback. */
+  a,
+  button,
+  [role="button"],
+  input,
+  select,
+  textarea,
+  label {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Removes the ~300ms synthetic click delay on iOS/iPadOS without
+     disabling pinch-zoom the way `touch-action: none` would. */
+  button,
+  a,
+  [role="button"],
+  [role="switch"],
+  [role="tab"],
+  input[type="range"],
+  summary {
+    touch-action: manipulation;
+  }
+
+  /* Mobile Safari zooms the viewport when focusing an input below 16px. */
+  @media (max-width: 640px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+
+  /* Range thumbs are 16px by default — too small to grab on a phone. */
+  input[type="range"] {
+    @apply h-6 bg-transparent;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    @apply h-1.5 rounded-full bg-surface-raised;
+  }
+  input[type="range"]::-moz-range-track {
+    @apply h-1.5 rounded-full bg-surface-raised;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 1.375rem;
+    width: 1.375rem;
+    margin-top: -0.4375rem;
+    border-radius: 9999px;
+    background: currentColor;
+    border: 2px solid #05070a;
+    cursor: pointer;
+  }
+  input[type="range"]::-moz-range-thumb {
+    height: 1.375rem;
+    width: 1.375rem;
+    border-radius: 9999px;
+    background: currentColor;
+    border: 2px solid #05070a;
+    cursor: pointer;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Badges and prices — monospaced by convention */
+  .font-numeric {
+    @apply font-mono tabular-nums;
+  }
+
+  /* Minimum comfortable hit area for icon-only controls; relaxes on
+     pointer-precise viewports where 32px is already easy to hit. */
+  .touch-target {
+    @apply inline-flex items-center justify-center;
+    @apply min-h-touch-sm min-w-touch-sm sm:min-h-0 sm:min-w-0;
+  }
+
+  /* Horizontal page padding that clears a landscape notch. */
+  .px-gutter {
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  }
+  @screen sm {
+    .px-gutter {
+      padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
+      padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
+    }
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
