@@ -19,7 +19,14 @@
       "Bash(curl -s \"http://localhost:3111/product/apple-mba-m2-16-512\" -o /tmp/p.html)",
       "Bash(node *)",
       "PowerShell(node scripts/_verify-offers.mjs apple-mba-m2-16-512 sony-ps5-slim-disc canon-eos-r6-ii nintendo-switch-oled)",
-      "PowerShell(node scripts/_verify-offers.mjs apple-mba-m2-16-512 dell-xps-15-9530 lenovo-x1-carbon-g12 sony-a7-iv-body canon-eos-r6-ii gopro-hero12-black sony-wh1000xm5 apple-airpods-pro-2 bose-qc-ultra sony-ps5-slim-disc xbox-series-x-1tb nintendo-switch-oled)"
+      "PowerShell(node scripts/_verify-offers.mjs apple-mba-m2-16-512 dell-xps-15-9530 lenovo-x1-carbon-g12 sony-a7-iv-body canon-eos-r6-ii gopro-hero12-black sony-wh1000xm5 apple-airpods-pro-2 bose-qc-ultra sony-ps5-slim-disc xbox-series-x-1tb nintendo-switch-oled)",
+      "Bash(curl -s -o /tmp/r1.json -w '%{http_code}\\\\n' -X POST http://localhost:3000/api/products -H 'Content-Type: application/json' -d '{\"title\":\"Apple MacBook Air 13\\\\\" M2\",\"condition\":\"open-box-excellent\",\"msrp\":1199,\"price\":849,\"stock\":4,\"url\":\"https://www.bestbuy.com/site/macbook-air-m2\",\"imageUrl\":\"https://pisces.bbystatic.com/image.jpg\",\"boostEnabled\":true,\"cpcBid\":0.75}')",
+      "Read(//tmp/**)",
+      "Bash(curl -s -o /tmp/r2.json -w '%{http_code}\\\\n' -X POST http://localhost:3000/api/products -H 'Content-Type: application/json' -d '{\"title\":\"Test\",\"condition\":\"certified-refurbished\",\"msrp\":100,\"price\":80,\"stock\":0,\"url\":\"https://example.com/p\",\"imageUrl\":\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==\"}')",
+      "Bash(curl -s -o /tmp/r3.json -w '%{http_code}\\\\n' -X POST http://localhost:3000/api/products -H 'Content-Type: application/json' -d '{\"title\":\"X\",\"condition\":\"open-box-excellent\",\"msrp\":100,\"price\":80,\"stock\":1,\"url\":\"https://example.com/p\",\"imageUrl\":\"javascript:alert\\(1\\)\"}')",
+      "Bash(curl -s -o /tmp/r4.json -w '%{http_code}\\\\n' -X POST http://localhost:3000/api/products -H 'Content-Type: application/json' -d '{\"title\":\"X\",\"condition\":\"open-box-excellent\",\"msrp\":100,\"price\":80,\"stock\":1,\"url\":\"https://example.com/p\",\"imageUrl\":\"blob:http://localhost:3000/abc\"}')",
+      "Bash(python -c ' *)",
+      "Bash(curl -s http://localhost:3000/merchants/dashboard)"
     ]
   }
 }

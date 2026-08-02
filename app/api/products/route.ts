@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import {
   RETAILERS,
   CONDITIONS_API,
+  type CardCondition,
   type ProductCategory,
   type RetailerId,
 } from "@/lib/catalog";
 import { MOCK_PRODUCTS, CASHBACK_RATE } from "@/lib/mock-products";
+import { CPC_MAX, CPC_MIN, validateImageSource } from "@/lib/mock-merchant";
 
 /**
  * GET /api/products
@@ -151,5 +153,133 @@ export async function GET(request: Request) {
       // Mock data is static; let the edge cache absorb repeat traffic.
       headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" },
     },
+  );
+}
+
+/**
+ * POST /api/products
+ *
+ * Merchant inventory intake — the dashboard posts a listing here when a
+ * merchant adds or edits a product. `imageUrl` carries either an http(s)
+ * hotlink or a base64 data URL from a local upload, and is validated with the
+ * same rule the form uses so a client bypass can't store a `javascript:` or
+ * `blob:` src. Persisting is an insert into `public.products` (schema.sql —
+ * `image_url text`); the mock validates and echoes the row it would have
+ * written, so the client can rely on one shape either way.
+ *
+ * Body: { title, condition, msrp, price, stock, url, imageUrl?, boostEnabled?, cpcBid? }
+ */
+
+type ListingBody = {
+  title?: unknown;
+  condition?: unknown;
+  msrp?: unknown;
+  price?: unknown;
+  stock?: unknown;
+  url?: unknown;
+  imageUrl?: unknown;
+  boostEnabled?: unknown;
+  cpcBid?: unknown;
+};
+
+const isHttpUrl = (value: string) => {
+  try {
+    return /^https?:$/.test(new URL(value).protocol);
+  } catch {
+    return false;
+  }
+};
+
+export async function POST(request: Request) {
+  let body: ListingBody;
+  try {
+    body = (await request.json()) as ListingBody;
+  } catch {
+    return NextResponse.json(
+      { error: "invalid_request", details: ["Body must be JSON."] },
+      { status: 400 },
+    );
+  }
+
+  const errors: string[] = [];
+
+  const title = typeof body.title === "string" ? body.title.trim() : "";
+  if (!title) errors.push("title is required.");
+
+  const condition = typeof body.condition === "string" ? body.condition : "";
+  if (!(condition in CONDITIONS_API)) {
+    errors.push(`Unknown condition "${condition}".`);
+  }
+
+  const msrp = Number(body.msrp);
+  const price = Number(body.price);
+  if (!Number.isFinite(msrp) || msrp <= 0) {
+    errors.push("msrp must be a positive number.");
+  }
+  if (!Number.isFinite(price) || price <= 0) {
+    errors.push("price must be a positive number.");
+  } else if (Number.isFinite(msrp) && price > msrp) {
+    errors.push("price must be at or below msrp.");
+  }
+
+  const stock = Number(body.stock);
+  if (!Number.isInteger(stock) || stock < 0) {
+    errors.push("stock must be a whole number of zero or more.");
+  }
+
+  const url = typeof body.url === "string" ? body.url.trim() : "";
+  if (!isHttpUrl(url)) errors.push("url must be an http(s) URL.");
+
+  // Optional, but a supplied image has to be something a browser can render.
+  let imageUrl: string | null = null;
+  if (body.imageUrl !== undefined && body.imageUrl !== null && body.imageUrl !== "") {
+    if (typeof body.imageUrl !== "string") {
+      errors.push("imageUrl must be a string.");
+    } else {
+      const check = validateImageSource(body.imageUrl.trim());
+      if (check.ok) imageUrl = body.imageUrl.trim();
+      else errors.push(check.reason);
+    }
+  }
+
+  const boostEnabled = body.boostEnabled === true;
+  const cpcBid = body.cpcBid === undefined ? CPC_MIN : Number(body.cpcBid);
+  if (!Number.isFinite(cpcBid) || cpcBid < CPC_MIN || cpcBid > CPC_MAX) {
+    errors.push(`cpcBid must be between ${CPC_MIN} and ${CPC_MAX}.`);
+  }
+
+  if (errors.length > 0) {
+    return NextResponse.json(
+      { error: "invalid_request", details: errors },
+      { status: 400 },
+    );
+  }
+
+  const savings = msrp - price;
+  const item = {
+    id: `lst-${Date.now().toString(36)}`,
+    title,
+    condition,
+    conditionLabel: CONDITIONS_API[condition as CardCondition].label,
+    warranty: CONDITIONS_API[condition as CardCondition].warranty,
+    imageUrl,
+    dealUrl: url,
+    stock,
+    availability: stock === 0 ? "Out of stock" : `${stock} in stock`,
+    pricing: {
+      currency: "USD",
+      msrp,
+      price,
+      savings,
+      savingsPercent: Math.round((savings / msrp) * 100),
+      cashback: round2(price * CASHBACK_RATE),
+      cashbackRate: CASHBACK_RATE,
+    },
+    boost: { enabled: boostEnabled, cpcBid },
+  };
+
+  return NextResponse.json(
+    { source: "mock", persisted: false, item },
+    { status: 201, headers: { "Cache-Control": "no-store" } },
   );
 }

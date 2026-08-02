@@ -1,18 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { Lock, Rocket } from "lucide-react";
+import { useRef, useState } from "react";
+import { ImageOff, ImageUp, Lock, Rocket, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { CONDITIONS } from "@/components/ui/badge";
 import type { CardCondition } from "@/lib/catalog";
 import {
+  ACCEPTED_IMAGE_TYPES,
   COMMISSION_RATE,
   CPC_MAX,
   CPC_MIN,
   CPC_STEP,
+  MAX_IMAGE_BYTES,
+  MAX_IMAGE_MB,
   forecastForBid,
   netPerUnit,
+  validateImageSource,
   type MerchantListing,
 } from "@/lib/mock-merchant";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -26,10 +30,18 @@ const CONDITION_OPTIONS: { value: CardCondition; label: string }[] = [
 /** Everything a merchant supplies; ids and metrics are assigned by the server. */
 export type ListingDraft = Pick<
   MerchantListing,
-  "title" | "condition" | "msrp" | "price" | "stock" | "url" | "boostEnabled" | "cpcBid"
+  | "title"
+  | "condition"
+  | "msrp"
+  | "price"
+  | "stock"
+  | "url"
+  | "imageUrl"
+  | "boostEnabled"
+  | "cpcBid"
 >;
 
-type FieldKey = "title" | "msrp" | "price" | "stock" | "url";
+type FieldKey = "title" | "msrp" | "price" | "stock" | "url" | "imageUrl";
 type Errors = Partial<Record<FieldKey, string>>;
 
 const BLANK = {
@@ -42,6 +54,21 @@ const BLANK = {
   boostEnabled: false,
   cpcBid: 0.75,
 };
+
+const FILE_ACCEPT = ACCEPTED_IMAGE_TYPES.join(",");
+
+/**
+ * Uploads ride along in the JSON payload, so the file has to become a string
+ * before submit — a blob URL would preview fine and then break everywhere else.
+ */
+function readAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
 
 export function InventoryForm({
   initial,
@@ -74,6 +101,23 @@ export function InventoryForm({
     initial ? String(initial.stock) : BLANK.stock,
   );
   const [url, setUrl] = useState(initial?.url ?? BLANK.url);
+
+  // One image, two entry points. An upload is held as {name, dataUrl} so the
+  // preview and the payload are the same string; a hotlink lives in the text
+  // field. Re-opening an edited listing restores whichever it came from.
+  const initialImage = initial?.imageUrl ?? "";
+  const [upload, setUpload] = useState<{ name: string; dataUrl: string } | null>(
+    initialImage.startsWith("data:")
+      ? { name: "Uploaded image", dataUrl: initialImage }
+      : null,
+  );
+  const [imageUrl, setImageUrl] = useState(
+    initialImage.startsWith("data:") ? "" : initialImage,
+  );
+  const [dragging, setDragging] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [boostEnabled, setBoostEnabled] = useState(
     canBoost ? (initial?.boostEnabled ?? BLANK.boostEnabled) : false,
   );
@@ -83,6 +127,57 @@ export function InventoryForm({
   const msrpNum = Number(msrp);
   const priceNum = Number(price);
   const forecast = forecastForBid(cpcBid);
+
+  /**
+   * Upload wins over a pasted link — only one photo ships with the listing. A
+   * half-typed link isn't previewed (or submitted) until it parses as a URL.
+   */
+  const typedImage = imageUrl.trim();
+  const previewSrc =
+    upload?.dataUrl ??
+    (typedImage && validateImageSource(typedImage).ok ? typedImage : "");
+
+  // Remembering *which* src failed resets the fallback as soon as it changes.
+  const [failedPreview, setFailedPreview] = useState<string | null>(null);
+  const previewBroken = failedPreview !== null && failedPreview === previewSrc;
+
+  const acceptFile = async (file: File | undefined) => {
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setUploadError("That file isn't an image. Use PNG, JPG, WebP, or GIF.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setUploadError(
+        `${file.name} is ${(file.size / 1024 / 1024).toFixed(1)}MB — the limit is ${MAX_IMAGE_MB}MB.`,
+      );
+      return;
+    }
+
+    try {
+      const dataUrl = await readAsDataUrl(file);
+      const check = validateImageSource(dataUrl);
+      if (!check.ok) {
+        setUploadError(check.reason);
+        return;
+      }
+      setUpload({ name: file.name, dataUrl });
+      setImageUrl("");
+      setUploadError(null);
+      setErrors((prev) => ({ ...prev, imageUrl: undefined }));
+    } catch {
+      setUploadError("Could not read that file. Try another image.");
+    }
+  };
+
+  const clearImage = () => {
+    setUpload(null);
+    setImageUrl("");
+    setUploadError(null);
+    setErrors((prev) => ({ ...prev, imageUrl: undefined }));
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   const discount =
     msrpNum > 0 && priceNum > 0 && priceNum <= msrpNum
@@ -122,6 +217,12 @@ export function InventoryForm({
       }
     }
 
+    // The photo is optional, but a typed link still has to be usable.
+    if (!upload && imageUrl.trim()) {
+      const check = validateImageSource(imageUrl.trim());
+      if (!check.ok) next.imageUrl = check.reason;
+    }
+
     return next;
   };
 
@@ -138,6 +239,7 @@ export function InventoryForm({
       price: priceNum,
       stock: Number(stock),
       url: url.trim(),
+      imageUrl: previewSrc || undefined,
       boostEnabled: canBoost && boostEnabled,
       cpcBid,
     });
@@ -148,6 +250,7 @@ export function InventoryForm({
       setPrice("");
       setStock("");
       setUrl("");
+      clearImage();
       setBoostEnabled(false);
       setCpcBid(BLANK.cpcBid);
       setErrors({});
@@ -251,6 +354,156 @@ export function InventoryForm({
           error={errors.url}
         />
       </div>
+
+      {/* Product image --------------------------------------------- */}
+      <fieldset className="flex flex-col gap-2">
+        <legend className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          Product image
+          <span className="normal-case tracking-normal">(optional)</span>
+        </legend>
+
+        {/* Stays a drop target in both states; only the empty state doubles as
+            a click-to-browse button, so the preview's controls stay reachable. */}
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragging(false);
+            void acceptFile(e.dataTransfer.files?.[0]);
+          }}
+          {...(previewSrc
+            ? {}
+            : {
+                role: "button" as const,
+                tabIndex: 0,
+                onClick: () => fileInputRef.current?.click(),
+                onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    fileInputRef.current?.click();
+                  }
+                },
+              })}
+          className={cn(
+            "rounded-xl border-2 border-dashed p-3 transition",
+            "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+            !previewSrc && "cursor-pointer px-6 py-8 text-center",
+            dragging
+              ? "border-accent bg-accent/[0.07]"
+              : uploadError
+                ? "border-rose-500/50 bg-canvas/40"
+                : "border-surface-border bg-canvas/40 hover:border-accent/40",
+          )}
+        >
+          {previewSrc ? (
+            <div className="flex items-center gap-3">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-surface-border bg-canvas">
+                {previewBroken ? (
+                  <ImageOff
+                    className="h-5 w-5 text-surface-border"
+                    aria-label="Image preview unavailable"
+                  />
+                ) : (
+                  /* eslint-disable-next-line @next/next/no-img-element -- data URL or arbitrary merchant host; next/image allows neither */
+                  <img
+                    src={previewSrc}
+                    alt="Product image preview"
+                    className="h-full w-full object-contain"
+                    onError={() => setFailedPreview(previewSrc)}
+                  />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">
+                  {upload ? upload.name : "Linked image"}
+                </p>
+                {previewBroken && (
+                  <p className="text-[11px] text-amber-300/80">
+                    Preview unavailable — the image may not be publicly
+                    reachable.
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="font-mono text-[10px] uppercase tracking-wider text-accent hover:underline"
+                >
+                  Replace
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={clearImage}
+                aria-label="Remove product image"
+                className="rounded-lg p-2 text-muted transition hover:bg-surface-raised hover:text-rose-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              <span
+                className={cn(
+                  "rounded-xl border border-surface-border bg-surface p-2.5 transition",
+                  dragging && "border-accent/50",
+                )}
+              >
+                <ImageUp className="h-5 w-5 text-accent" aria-hidden="true" />
+              </span>
+              <p className="text-sm font-medium">
+                {dragging ? "Drop to attach" : "Drag & drop a product photo"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                PNG, JPG, WebP or GIF · up to {MAX_IMAGE_MB}MB · or click to
+                browse
+              </p>
+            </div>
+          )}
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={FILE_ACCEPT}
+            className="hidden"
+            aria-label="Upload product image"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              // Clear the input so re-picking the same file still fires change.
+              e.target.value = "";
+              void acceptFile(file);
+            }}
+          />
+        </div>
+
+        {uploadError && (
+          <p role="alert" className="text-[11px] text-rose-300">
+            {uploadError}
+          </p>
+        )}
+
+        <Field
+          label="Image URL"
+          id="listing-image-url"
+          value={imageUrl}
+          onChange={(v) => {
+            setImageUrl(v);
+            setUploadError(null);
+          }}
+          placeholder="https://…/product.jpg"
+          type="url"
+          disabled={upload !== null}
+          error={errors.imageUrl}
+        />
+        <p className="-mt-0.5 text-[11px] text-muted-foreground">
+          {upload
+            ? "Remove the upload to link an image by URL instead."
+            : "Paste a direct link to the product photo if you'd rather not upload."}
+        </p>
+      </fieldset>
 
       {/* CPC boost ------------------------------------------------- */}
       <div
@@ -412,6 +665,7 @@ function Field({
           aria-describedby={error ? `${id}-error` : undefined}
           className={cn(
             "h-11 w-full rounded-xl border bg-canvas/60 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1",
+            "disabled:cursor-not-allowed disabled:opacity-50",
             prefix ? "pl-7" : "pl-3",
             error
               ? "border-rose-500/50 focus:border-rose-500/60 focus:ring-rose-500/40"

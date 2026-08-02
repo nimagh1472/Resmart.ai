@@ -50,6 +50,11 @@ export type MerchantListing = {
   price: number;
   stock: number;
   url: string;
+  /**
+   * Product photo. Either an http(s) hotlink the merchant pasted or a base64
+   * data URL from a local upload. Maps to `products.image_url` (schema.sql).
+   */
+  imageUrl?: string;
   /** CPC boost on/off. Independent of the bid, so the bid survives a pause. */
   boostEnabled: boolean;
   cpcBid: number;
@@ -57,6 +62,62 @@ export type MerchantListing = {
   clicks: number;
   unitsSold: number;
 };
+
+/* ------------------------------------------------------------------ */
+/* Product imagery                                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Upload ceiling. Uploads travel to the API inline as base64, so the cap is
+ * enforced on both sides — the form for feedback, the route for trust.
+ */
+export const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+export const MAX_IMAGE_MB = MAX_IMAGE_BYTES / (1024 * 1024);
+
+export const ACCEPTED_IMAGE_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+] as const;
+
+const DATA_URL_RE = /^data:image\/(png|jpeg|jpg|webp|gif);base64,([A-Za-z0-9+/]+={0,2})$/;
+
+/** Decoded byte length of a base64 payload, without allocating the buffer. */
+function base64Bytes(b64: string): number {
+  const padding = b64.endsWith("==") ? 2 : b64.endsWith("=") ? 1 : 0;
+  return (b64.length * 3) / 4 - padding;
+}
+
+/**
+ * Accepts the two shapes a product photo can arrive in — an http(s) hotlink or
+ * an inline base64 upload — and rejects everything else. Notably `javascript:`
+ * and `blob:`: a blob URL only resolves in the tab that made it, so storing one
+ * would render a broken image everywhere else.
+ */
+export function validateImageSource(
+  src: string,
+): { ok: true } | { ok: false; reason: string } {
+  if (src.startsWith("data:")) {
+    const match = DATA_URL_RE.exec(src);
+    if (!match) {
+      return { ok: false, reason: "Uploaded image must be PNG, JPG, WebP, or GIF." };
+    }
+    if (base64Bytes(match[2]) > MAX_IMAGE_BYTES) {
+      return { ok: false, reason: `Image must be under ${MAX_IMAGE_MB}MB.` };
+    }
+    return { ok: true };
+  }
+
+  try {
+    if (!/^https?:$/.test(new URL(src).protocol)) {
+      return { ok: false, reason: "Image URL must start with http:// or https://" };
+    }
+  } catch {
+    return { ok: false, reason: "Enter a valid image URL." };
+  }
+  return { ok: true };
+}
 
 export const MOCK_LISTINGS: MerchantListing[] = [
   {

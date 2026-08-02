@@ -7,6 +7,7 @@ import {
   BarChart3,
   ExternalLink,
   Lock,
+  Package,
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -156,36 +157,39 @@ export function AnalyticsTable({
               key={l.id}
               className={cn("flex flex-col gap-3 p-4", !boosted && "opacity-70")}
             >
-              <div className="flex flex-col gap-1.5">
-                <a
-                  href={l.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-start gap-1.5 font-medium text-foreground"
-                >
-                  <span className="min-w-0 break-words">{l.title}</span>
-                  <ExternalLink
-                    className="mt-1 h-3 w-3 shrink-0 text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                </a>
-                <div className="flex flex-wrap items-center gap-2">
-                  <ConditionBadge condition={l.condition} size="sm" />
-                  <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                    {formatCurrency(l.price)}
-                    <span className="ml-1 line-through opacity-60">
-                      {formatCurrency(l.msrp)}
+              <div className="flex items-start gap-3">
+                <Thumb src={l.imageUrl} alt={l.title} className="h-14 w-14" />
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <a
+                    href={l.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-start gap-1.5 font-medium text-foreground"
+                  >
+                    <span className="min-w-0 break-words">{l.title}</span>
+                    <ExternalLink
+                      className="mt-1 h-3 w-3 shrink-0 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  </a>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <ConditionBadge condition={l.condition} size="sm" />
+                    <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                      {formatCurrency(l.price)}
+                      <span className="ml-1 line-through opacity-60">
+                        {formatCurrency(l.msrp)}
+                      </span>
                     </span>
-                  </span>
-                  {l.stock === 0 ? (
-                    <Badge tone="rose" size="sm">
-                      Out of stock
-                    </Badge>
-                  ) : (
-                    <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                      {l.stock} in stock
-                    </span>
-                  )}
+                    {l.stock === 0 ? (
+                      <Badge tone="rose" size="sm">
+                        Out of stock
+                      </Badge>
+                    ) : (
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                        {l.stock} in stock
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -335,36 +339,43 @@ export function AnalyticsTable({
                   )}
                 >
                   <td className="max-w-xs px-5 py-3.5">
-                    <div className="flex flex-col gap-1.5">
-                      <a
-                        href={l.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group inline-flex items-center gap-1.5 truncate font-medium text-foreground hover:text-accent"
-                      >
-                        <span className="truncate">{l.title}</span>
-                        <ExternalLink
-                          className="h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-                          aria-hidden="true"
-                        />
-                      </a>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <ConditionBadge condition={l.condition} size="sm" />
-                        <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                          {formatCurrency(l.price)}
-                          <span className="ml-1 line-through opacity-60">
-                            {formatCurrency(l.msrp)}
+                    <div className="flex items-center gap-3">
+                      <Thumb
+                        src={l.imageUrl}
+                        alt={l.title}
+                        className="h-11 w-11"
+                      />
+                      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                        <a
+                          href={l.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="group inline-flex items-center gap-1.5 truncate font-medium text-foreground hover:text-accent"
+                        >
+                          <span className="truncate">{l.title}</span>
+                          <ExternalLink
+                            className="h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                            aria-hidden="true"
+                          />
+                        </a>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <ConditionBadge condition={l.condition} size="sm" />
+                          <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                            {formatCurrency(l.price)}
+                            <span className="ml-1 line-through opacity-60">
+                              {formatCurrency(l.msrp)}
+                            </span>
                           </span>
-                        </span>
-                        {l.stock === 0 ? (
-                          <Badge tone="rose" size="sm">
-                            Out of stock
-                          </Badge>
-                        ) : (
-                          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                            {l.stock} in stock
-                          </span>
-                        )}
+                          {l.stock === 0 ? (
+                            <Badge tone="rose" size="sm">
+                              Out of stock
+                            </Badge>
+                          ) : (
+                            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                              {l.stock} in stock
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -483,6 +494,49 @@ export function AnalyticsTable({
         converts.
       </p>
     </section>
+  );
+}
+
+/**
+ * Listing thumbnail. The src is whatever the merchant supplied — a data URL
+ * from an upload or a hotlink to any host — so `next/image` is out on both
+ * counts, and a dead link falls back to the placeholder rather than a broken
+ * frame.
+ */
+function Thumb({
+  src,
+  alt,
+  className,
+}: {
+  src?: string;
+  alt: string;
+  className?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+
+  return (
+    <div
+      className={cn(
+        "flex shrink-0 items-center justify-center overflow-hidden rounded-lg border border-surface-border bg-canvas",
+        className,
+      )}
+    >
+      {src && !failed ? (
+        /* eslint-disable-next-line @next/next/no-img-element -- merchant-supplied data URL or arbitrary host */
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          onError={() => setFailed(true)}
+          className="h-full w-full object-contain"
+        />
+      ) : (
+        <Package
+          className="h-4 w-4 text-surface-border"
+          aria-label={`${alt} — no photo`}
+        />
+      )}
+    </div>
   );
 }
 

@@ -9,6 +9,7 @@ import {
   Percent,
   ShoppingBag,
   TrendingUp,
+  X,
 } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { SideDrawer } from "@/components/ui/side-drawer";
@@ -45,6 +46,7 @@ export function MerchantDashboard() {
   const [editing, setEditing] = useState<MerchantListing | null>(null);
   const [deleting, setDeleting] = useState<MerchantListing | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const isDesktop = useIsDesktop();
   const boostAllowed = canPublish(profile.status);
@@ -73,6 +75,38 @@ export function MerchantDashboard() {
     };
   }, [listings, boostAllowed, wallet.commissionsSettled]);
 
+  /**
+   * Sends the draft — product photo included, as either a hotlink or the
+   * upload's data URL — to the inventory API. The board is optimistic: the row
+   * is already on screen, so a rejection surfaces as a banner instead of
+   * yanking it back.
+   */
+  const publish = async (draft: ListingDraft) => {
+    try {
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(draft),
+      });
+
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as {
+          details?: string[];
+        } | null;
+        setApiError(
+          body?.details?.join(" ") ??
+            "The inventory API rejected this listing.",
+        );
+        return;
+      }
+      setApiError(null);
+    } catch {
+      setApiError(
+        "Could not reach the inventory API — this listing is only saved locally.",
+      );
+    }
+  };
+
   const addListing = (draft: ListingDraft) => {
     setListings((prev) => [
       {
@@ -84,6 +118,7 @@ export function MerchantDashboard() {
       },
       ...prev,
     ]);
+    void publish(draft);
   };
 
   const updateListing = (draft: ListingDraft) => {
@@ -92,6 +127,7 @@ export function MerchantDashboard() {
       prev.map((l) => (l.id === editing.id ? { ...l, ...draft } : l)),
     );
     setEditing(null);
+    void publish(draft);
   };
 
   const confirmDelete = () => {
@@ -205,6 +241,27 @@ export function MerchantDashboard() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
         <div className="flex min-w-0 flex-col gap-6">
+          {apiError && (
+            <div
+              role="alert"
+              className="flex items-start gap-3 rounded-xl border border-rose-500/25 bg-rose-500/[0.06] p-4"
+            >
+              <AlertTriangle
+                className="mt-0.5 h-4 w-4 shrink-0 text-rose-300"
+                aria-hidden="true"
+              />
+              <p className="text-sm text-rose-100">{apiError}</p>
+              <button
+                type="button"
+                onClick={() => setApiError(null)}
+                aria-label="Dismiss"
+                className="ml-auto rounded-lg p-1 text-muted transition hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
           <AnalyticsTable
             listings={listings}
             canBoost={boostAllowed}
