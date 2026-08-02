@@ -10,7 +10,16 @@
       "PowerShell(node -e \"const t=require\\('fs'\\).readFileSync\\('./node_modules/@anthropic-ai/sdk/resources/messages/messages.d.ts','utf8'\\); console.log\\('output_config:', t.includes\\('output_config'\\)\\); console.log\\('OutputConfig iface:', \\(t.match\\(/interface OutputConfig[\\\\s\\\\S]{0,600}/\\)||['none']\\)[0]\\);\")",
       "PowerShell(node -e \"const t=require\\('fs'\\).readFileSync\\('./node_modules/@anthropic-ai/sdk/resources/messages/messages.d.ts','utf8'\\); console.log\\(\\(t.match\\(/interface JSONOutputFormat[\\\\s\\\\S]{0,700}/\\)||['none']\\)[0]\\);\")",
       "PowerShell(Stop-Job *)",
-      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 25)"
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 25)",
+      "PowerShell(npx tsc --noEmit)",
+      "PowerShell(npm run *)",
+      "Bash(curl -s -o /dev/null http://localhost:3111/api/products)",
+      "Bash(curl -s \"http://localhost:3111/api/products?limit=50\")",
+      "Bash(node -e ' *)",
+      "Bash(curl -s \"http://localhost:3111/product/apple-mba-m2-16-512\" -o /tmp/p.html)",
+      "Bash(node *)",
+      "PowerShell(node scripts/_verify-offers.mjs apple-mba-m2-16-512 sony-ps5-slim-disc canon-eos-r6-ii nintendo-switch-oled)",
+      "PowerShell(node scripts/_verify-offers.mjs apple-mba-m2-16-512 dell-xps-15-9530 lenovo-x1-carbon-g12 sony-a7-iv-body canon-eos-r6-ii gopro-hero12-black sony-wh1000xm5 apple-airpods-pro-2 bose-qc-ultra sony-ps5-slim-disc xbox-series-x-1tb nintendo-switch-oled)"
     ]
   }
 }

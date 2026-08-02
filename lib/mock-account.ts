@@ -1,7 +1,4 @@
-﻿import { MOCK_PRODUCTS } from "@/lib/mock-products";
-import type { Product } from "@/components/ProductCard";
-
-/** Minimum balance before a payout can be requested. */
+﻿/** Minimum balance before a payout can be requested. */
 export const PAYOUT_MINIMUM = 25;
 
 export type AccountUser = {
@@ -82,8 +79,9 @@ export const MOCK_SAVED_DEALS: SavedDeal[] = [
   },
 ];
 
-export const productById = (id: string): Product | undefined =>
-  MOCK_PRODUCTS.find((p) => p.id === id);
+// Defined alongside the catalog itself; re-exported so the account components
+// that already import it from here keep working.
+export { productById } from "@/lib/mock-products";
 
 /* ------------------------------------------------------------------ */
 /* AI Vision history                                                   */

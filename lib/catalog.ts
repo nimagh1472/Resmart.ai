@@ -10,7 +10,11 @@ export type RetailerId =
   | "best-buy"
   | "ebay"
   | "walmart"
-  | "amazon-warehouse";
+  | "amazon-warehouse"
+  | "back-market"
+  | "newegg"
+  | "gamestop"
+  | "adorama";
 
 export type ProductCategory =
   | "laptops"
@@ -19,21 +23,56 @@ export type ProductCategory =
   | "consoles";
 
 /** ReSmart only surfaces graded, warranty-backed stock. */
-export type CardCondition = "open-box-excellent" | "certified-refurbished";
+export type CardCondition =
+  | "open-box-excellent"
+  | "certified-refurbished"
+  | "like-new";
 
 /**
  * Brand colors are lightened from each retailer's official palette so they
  * stay legible on the Deep Void canvas. `logoSrc` is intentionally empty —
- * real retailer marks are licensed assets and must be supplied per-deployment.
+ * real retailer marks are licensed assets and must be supplied per-deployment;
+ * until one is, the UI falls back to a monogram tile in the brand color.
+ *
+ * `home` is the storefront root, used as the affiliate destination for
+ * comparison offers that have no deep link of their own.
  */
 export const RETAILERS: Record<
   RetailerId,
-  { label: string; color: string; logoSrc?: string }
+  { label: string; color: string; home: string; logoSrc?: string }
 > = {
-  "best-buy": { label: "Best Buy", color: "#FFE000" },
-  ebay: { label: "eBay", color: "#7CB9F2" },
-  walmart: { label: "Walmart", color: "#FFC220" },
-  "amazon-warehouse": { label: "Amazon Warehouse", color: "#FF9900" },
+  "best-buy": {
+    label: "Best Buy",
+    color: "#FFE000",
+    home: "https://www.bestbuy.com/",
+  },
+  ebay: { label: "eBay", color: "#7CB9F2", home: "https://www.ebay.com/" },
+  walmart: {
+    label: "Walmart",
+    color: "#FFC220",
+    home: "https://www.walmart.com/",
+  },
+  "amazon-warehouse": {
+    label: "Amazon Warehouse",
+    color: "#FF9900",
+    home: "https://www.amazon.com/",
+  },
+  "back-market": {
+    label: "Back Market",
+    color: "#5CE1B6",
+    home: "https://www.backmarket.com/",
+  },
+  newegg: { label: "Newegg", color: "#F97362", home: "https://www.newegg.com/" },
+  gamestop: {
+    label: "GameStop",
+    color: "#A78BFA",
+    home: "https://www.gamestop.com/",
+  },
+  adorama: {
+    label: "Adorama",
+    color: "#F0ABFC",
+    home: "https://www.adorama.com/",
+  },
 };
 
 /** Condition metadata exposed over the API (distinct from the badge's UI copy). */
@@ -51,4 +90,86 @@ export const CONDITIONS_API: Record<
     warranty: "1-year manufacturer warranty",
     description: "Professionally restored and tested to manufacturer spec.",
   },
+  "like-new": {
+    label: "Like New",
+    warranty: "6-month seller warranty",
+    description: "Lightly used with no visible wear.",
+  },
 };
+
+/* ------------------------------------------------------------------ */
+/* Merchant offers                                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * One merchant's listing for a product. A product page shows several of these
+ * side by side; the card shows only the best-value one.
+ */
+export type MerchantOffer = {
+  /** Unique within a product — used as the React key and in click attribution. */
+  id: string;
+  merchant: RetailerId;
+  condition: CardCondition;
+  /** Coverage as the merchant states it, e.g. "1-Year Apple Warranty". */
+  warranty: string;
+  /** Sticker price, before shipping and before cashback. */
+  price: number;
+  /** Flat shipping cost in dollars; 0 renders as "Free Shipping". */
+  shipping: number;
+  /** VIP wallet credit earned on this offer, in dollars. */
+  cashback: number;
+  /**
+   * Outbound affiliate destination. Never rendered directly — pass it through
+   * `safeExternalUrl` first, which drops anything that isn't http(s).
+   */
+  dealUrl: string;
+  /** Free-text availability, e.g. "4 in stock". */
+  stock?: string;
+  /** Return policy summary, e.g. "30-day returns". */
+  returns?: string;
+};
+
+/**
+ * What the buyer actually parts with: sticker + shipping, less the cashback
+ * that lands back in their wallet. This — not the sticker price — is what the
+ * comparison table ranks on, because a $10 cheaper listing with $15 shipping
+ * is not a better deal.
+ */
+export function offerNetCost(offer: MerchantOffer): number {
+  return Math.round((offer.price + offer.shipping - offer.cashback) * 100) / 100;
+}
+
+/**
+ * Best value first. Ties break on sticker price, then cashback, then merchant
+ * id — a plain codepoint comparison rather than `localeCompare`, so the server
+ * and the client can never disagree about the order and trip a hydration
+ * mismatch. Returns a new array; the input is left alone.
+ */
+export function sortOffersByValue(offers: MerchantOffer[]): MerchantOffer[] {
+  return [...offers].sort(
+    (a, b) =>
+      offerNetCost(a) - offerNetCost(b) ||
+      a.price - b.price ||
+      b.cashback - a.cashback ||
+      (a.merchant < b.merchant ? -1 : a.merchant > b.merchant ? 1 : 0),
+  );
+}
+
+/**
+ * The warranty a grade implies when a merchant hasn't stated its own. Certified
+ * refurbished stock carries manufacturer coverage, so it names the brand;
+ * everything else is backed by the store.
+ */
+export function defaultWarranty(
+  brand: string,
+  condition: CardCondition,
+): string {
+  switch (condition) {
+    case "certified-refurbished":
+      return `1-Year ${brand} Warranty`;
+    case "like-new":
+      return "6-Month Store Warranty";
+    default:
+      return "90-Day Store Warranty";
+  }
+}

@@ -23,6 +23,23 @@ export type AffiliateClickPayload = {
   dealUrl: string;
   /** Where on the page the click originated, e.g. "product-card". */
   placement?: string;
+  /** Flat shipping on the chosen offer; 0 when the merchant ships free. */
+  shipping?: number;
+  /** 1-based position in the best-value ranking the shopper clicked from. */
+  offerRank?: number;
+  /** How many merchants were on screen when they chose. */
+  offerCount?: number;
+};
+
+export type CompareClickPayload = {
+  productId: string;
+  offerCount: number;
+  /** Best-value price shown on the card, i.e. the "from" figure. */
+  bestPrice: number;
+  /** Which surface hosted the card, e.g. "trending-deals". */
+  placement?: string;
+  /** Which part of the card was clicked. */
+  surface?: "image" | "title" | "cta";
 };
 
 declare global {
@@ -60,6 +77,22 @@ export function trackAffiliateClick(payload: AffiliateClickPayload) {
       ...payload,
       savings: payload.msrp - payload.price,
       placement: payload.placement ?? "product-card",
+    },
+  });
+}
+
+/**
+ * An on-platform click into the comparison page. Distinct from
+ * `affiliate_click`: no commission is earned here, and the shopper hasn't
+ * chosen a merchant yet — this is the top of the comparison funnel.
+ */
+export function trackCompareClick(payload: CompareClickPayload) {
+  track({
+    name: "compare_offers_click",
+    payload: {
+      ...payload,
+      placement: payload.placement ?? "product-card",
+      surface: payload.surface ?? "cta",
     },
   });
 }

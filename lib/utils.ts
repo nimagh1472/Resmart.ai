@@ -20,6 +20,26 @@ export function formatDate(iso: string) {
 }
 
 /**
+ * Gate for any URL that reaches an `href`. Affiliate destinations arrive from
+ * merchant feeds, so they're untrusted input: anything that isn't an absolute
+ * http(s) URL — `javascript:`, `data:`, a relative path that would keep the
+ * user on our origin while looking outbound — comes back as `null`, and the
+ * caller renders a disabled control instead of a link.
+ */
+export function safeExternalUrl(raw: string | undefined | null): string | null {
+  if (!raw) return null;
+
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    return url.toString();
+  } catch {
+    // Not parseable as absolute — reject rather than guess at a base.
+    return null;
+  }
+}
+
+/**
  * USD formatter. Cents are shown only when the value actually has them, so
  * list prices read `$849` while cashback reads `$25.47`.
  */
