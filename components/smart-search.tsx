@@ -129,13 +129,11 @@ export function SmartSearch({
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    // No /search route yet — Enter opens the highlighted match, which is the
-    // destination that route would land on anyway.
-    const target = results[active] ?? results[0];
-    if (target) {
-      setOpen(false);
-      router.push(productHref(target.product.id));
-    }
+    if (!trimmed) return;
+    // Enter/Search always runs a live cross-API search, even when the typeahead
+    // panel below is showing a mock-catalog match for the same keystrokes.
+    setOpen(false);
+    router.push(`/search?q=${encodeURIComponent(trimmed)}`);
   };
 
   return (
