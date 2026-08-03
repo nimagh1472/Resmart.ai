@@ -38,13 +38,22 @@ export async function fetchEbayListings(
   const json = await response.json();
   const raw: unknown[] = json.itemSummaries ?? [];
 
+  type RawListing = {
+    itemId?: string;
+    title?: string;
+    price?: { value?: string | number };
+    image?: { imageUrl?: string };
+    itemWebUrl?: string;
+    condition?: string;
+  };
+
   return raw.slice(0, limit).map((entry, i) => {
-    const item = entry as Record<string, any>;
+    const item = entry as RawListing;
     return {
       id: String(item.itemId ?? i),
       title: String(item.title ?? "Untitled listing"),
       price: Number(item.price?.value) || 0,
-      image: (item.image?.imageUrl as string) ?? null,
+      image: item.image?.imageUrl ?? null,
       url: String(item.itemWebUrl ?? "#"),
       condition: String(item.condition ?? "Not specified"),
     };
