@@ -27,15 +27,26 @@ export function formatDate(iso: string) {
 /**
  * Decodes a route param or query value that may already be decoded, may be
  * malformed (a lone `%` from a title like "50% off" — not a real escape
- * sequence), or may be legitimately un-decodable. `decodeURIComponent` throws
- * a `URIError` on malformed input, which would otherwise crash the whole page
- * render; this falls back to the raw string instead.
+ * sequence), may legitimately contain reserved characters (`|`, as in eBay's
+ * `v1|110599963383|0` item ids), or may be missing/an array (Next.js's
+ * `searchParams` type allows `string | string[] | undefined` even where a
+ * page only expects one value, e.g. a duplicated `?title=a&title=b`).
+ * `decodeURIComponent` throws a `URIError` on malformed input, which would
+ * otherwise crash the whole Server Component render tree; this normalizes
+ * missing/array input and falls back to the raw string on a decode error
+ * instead.
  */
-export function safeDecodeURIComponent(value: string): string {
+export function safeDecodeURIComponent(
+  value: string | string[] | undefined | null,
+): string {
+  if (value == null) return "";
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (typeof raw !== "string") return "";
+
   try {
-    return decodeURIComponent(value);
+    return decodeURIComponent(raw);
   } catch {
-    return value;
+    return raw;
   }
 }
 

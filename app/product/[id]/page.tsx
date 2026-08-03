@@ -38,7 +38,11 @@ const FALLBACK_STORE_INFO = {
 
 type Params = {
   params: { id: string };
-  searchParams: { title?: string; store?: string };
+  // Next.js allows any query key to arrive as a string, an array (a repeated
+  // key like `?title=a&title=b`), or missing entirely — this type is left
+  // loose to match reality rather than assuming a single string always
+  // arrives, and `safeDecodeURIComponent` normalizes all three cases.
+  searchParams: { title?: string | string[]; store?: string | string[] };
 };
 
 /**
@@ -322,7 +326,12 @@ async function LiveProductView({
     () => ({ items: [] as LiveProduct[], errors: [] }),
   );
 
-  if (items.length === 0) notFound();
+  // No listings at all is an expected outcome (a slow/rate-limited store,
+  // an obscure query) rather than an error — render the fallback directly
+  // instead of a 404, so the shopper keeps the title and a way to retry.
+  if (items.length === 0) {
+    return <LiveProductFallback title={title} />;
+  }
 
   // Everything below reads fields the RapidAPI feeds don't formally guarantee
   // (a store's shape can drift without notice). Rather than let a malformed
@@ -334,7 +343,7 @@ async function LiveProductView({
     const group = bestMatchingGroup(groups, { anchorId: id, title });
     const offers = group?.deals ?? [];
     if (offers.length === 0) {
-      throw new Error("No per-store offers could be derived from the live listings.");
+      return <LiveProductFallback title={title} />;
     }
 
     const anchor =
@@ -343,7 +352,7 @@ async function LiveProductView({
       offers[0];
 
     if (!anchor) {
-      throw new Error("No anchor offer available for this product.");
+      return <LiveProductFallback title={title} />;
     }
 
     const trend = estimatePriceTrend(anchor, offers);
