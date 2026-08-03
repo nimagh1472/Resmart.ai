@@ -36,7 +36,23 @@ export const STORE_INFO: Record<
     perks: ["Free shipping ($35+)", "Free store pick-up", "Same-day delivery (select areas)"],
     warranty: "Walmart 90-day return policy",
   },
+  Target: {
+    color: "#CC0000",
+    perks: ["Free shipping ($35+)", "Free store pick-up", "Same-day delivery via Shipt (select areas)"],
+    warranty: "Target 90-day return policy",
+  },
 };
+
+/**
+ * Whether a store's general shipping policy includes a free-shipping
+ * threshold, for the comparison table's "Shipping Status" column. Falls back
+ * to a neutral "check store" status for any store outside `STORE_INFO`.
+ */
+export function shippingStatus(store: Store): { label: string; free: boolean } {
+  const perks = STORE_INFO[store]?.perks ?? [];
+  const freePerk = perks.find((perk) => /free (shipping|prime shipping)/i.test(perk));
+  return freePerk ? { label: freePerk, free: true } : { label: "Check store for shipping", free: false };
+}
 
 export type ConditionTag = { label: string; tone: BadgeTone };
 

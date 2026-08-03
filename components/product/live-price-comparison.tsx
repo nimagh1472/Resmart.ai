@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { BUTTON_MOTION, buttonStyles } from "@/components/ui/button-styles";
 import { motion } from "framer-motion";
 import type { Product } from "@/lib/marketplace";
-import { normalizeCondition, STORE_INFO } from "@/lib/store-info";
+import { normalizeCondition, shippingStatus, STORE_INFO } from "@/lib/store-info";
 import { trackAffiliateClick } from "@/lib/analytics";
 import { cn, formatCurrency, safeExternalUrl } from "@/lib/utils";
 
@@ -72,17 +72,17 @@ export function LivePriceComparison({
           </caption>
           <thead>
             <tr className="border-b border-surface-border bg-surface-raised/60">
-              {["Retailer", "Condition", "Delivery & perks", "Price", ""].map(
+              {["Store", "Price", "Savings", "Condition", "Shipping", ""].map(
                 (label, i) => (
                   <th
                     key={label || `actions-${i}`}
                     scope="col"
                     className={cn(
                       "px-4 py-3 font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground",
-                      i === 3 && "text-right",
+                      (i === 1 || i === 2) && "text-right",
                     )}
                   >
-                    {label || <span className="sr-only">Buy</span>}
+                    {label || <span className="sr-only">Buy Deal</span>}
                   </th>
                 ),
               )}
@@ -100,17 +100,20 @@ export function LivePriceComparison({
                 <td className="px-4 py-4 align-middle">
                   <StoreIdentity store={offer.store} best={i === 0} />
                 </td>
-                <td className="px-4 py-4 align-middle">
-                  <ConditionCell condition={offer.condition} />
-                </td>
-                <td className="px-4 py-4 align-middle">
-                  <PerksCell store={offer.store} />
-                </td>
                 <td className="px-4 py-4 text-right align-middle">
                   <PriceCell offer={offer} />
                 </td>
                 <td className="px-4 py-4 text-right align-middle">
-                  <BuyNowButton
+                  <SavingsCell offer={offer} />
+                </td>
+                <td className="px-4 py-4 align-middle">
+                  <ConditionCell condition={offer.condition} />
+                </td>
+                <td className="px-4 py-4 align-middle">
+                  <ShippingCell store={offer.store} />
+                </td>
+                <td className="px-4 py-4 text-right align-middle">
+                  <BuyDealButton
                     offer={offer}
                     rank={i}
                     offerCount={offers.length}
@@ -138,11 +141,16 @@ export function LivePriceComparison({
           >
             <div className="flex items-start justify-between gap-3">
               <StoreIdentity store={offer.store} best={i === 0} />
-              <PriceCell offer={offer} align="right" />
+              <div className="flex flex-col items-end gap-1">
+                <PriceCell offer={offer} align="right" />
+                <SavingsCell offer={offer} align="right" />
+              </div>
             </div>
-            <ConditionCell condition={offer.condition} />
-            <PerksCell store={offer.store} />
-            <BuyNowButton
+            <div className="flex flex-wrap items-center gap-2">
+              <ConditionCell condition={offer.condition} />
+            </div>
+            <ShippingCell store={offer.store} />
+            <BuyDealButton
               offer={offer}
               rank={i}
               offerCount={offers.length}
@@ -207,18 +215,15 @@ function ConditionCell({ condition }: { condition: string | null }) {
   );
 }
 
-function PerksCell({ store }: { store: Product["store"] }) {
-  const { perks, warranty } = STORE_INFO[store];
+function ShippingCell({ store }: { store: Product["store"] }) {
+  const { warranty } = STORE_INFO[store] ?? { warranty: "Check the retailer's page for return policy." };
+  const { label, free } = shippingStatus(store);
 
   return (
     <div className="flex max-w-[16rem] flex-col gap-1.5">
-      <div className="flex flex-wrap gap-1.5">
-        {perks.map((perk) => (
-          <Badge key={perk} tone="slate" size="sm" icon={<Truck className="h-3 w-3" aria-hidden="true" />}>
-            {perk}
-          </Badge>
-        ))}
-      </div>
+      <Badge tone={free ? "emerald" : "slate"} size="sm" icon={<Truck className="h-3 w-3" aria-hidden="true" />}>
+        {label}
+      </Badge>
       <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
         <ShieldCheck className="h-3 w-3 shrink-0" aria-hidden="true" />
         {warranty}
@@ -234,11 +239,6 @@ function PriceCell({
   offer: Product;
   align?: "left" | "right";
 }) {
-  const off =
-    offer.originalPrice && offer.originalPrice > offer.price
-      ? Math.round(((offer.originalPrice - offer.price) / offer.originalPrice) * 100)
-      : 0;
-
   return (
     <div className={cn("flex flex-col", align === "right" && "items-end")}>
       <span className="font-mono text-lg font-semibold tabular-nums text-foreground">
@@ -249,16 +249,42 @@ function PriceCell({
           {formatCurrency(offer.originalPrice)}
         </span>
       )}
-      {off > 0 && (
-        <span className="font-mono text-[10px] uppercase tracking-wider text-vip-strong">
-          {off}% off
-        </span>
-      )}
     </div>
   );
 }
 
-function BuyNowButton({
+function SavingsCell({
+  offer,
+  align = "right",
+}: {
+  offer: Product;
+  align?: "left" | "right";
+}) {
+  const hasSavings = !!offer.originalPrice && offer.originalPrice > offer.price;
+  if (!hasSavings) {
+    return (
+      <span className={cn("font-mono text-xs text-muted-foreground", align === "right" && "block text-right")}>
+        —
+      </span>
+    );
+  }
+
+  const savings = offer.originalPrice! - offer.price;
+  const savingsPct = Math.round((savings / offer.originalPrice!) * 100);
+
+  return (
+    <div className={cn("flex flex-col", align === "right" && "items-end")}>
+      <span className="font-mono text-sm font-semibold tabular-nums text-vip-strong">
+        {formatCurrency(savings)}
+      </span>
+      <span className="font-mono text-[10px] uppercase tracking-wider text-vip-strong/80">
+        {savingsPct}% off
+      </span>
+    </div>
+  );
+}
+
+function BuyDealButton({
   offer,
   rank,
   offerCount,
@@ -322,7 +348,7 @@ function BuyNowButton({
         fullWidth,
       })}
     >
-      Buy Now
+      Buy Deal
       <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
       <span className="sr-only">
         — {title} at {offer.store} for {formatCurrency(offer.price)} (opens in

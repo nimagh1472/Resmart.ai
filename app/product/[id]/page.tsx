@@ -19,7 +19,12 @@ import { Sparkline } from "@/components/ui/sparkline";
 import { Tooltip } from "@/components/ui/tooltip";
 import { CATEGORY_LABELS, MOCK_PRODUCTS, productById } from "@/lib/mock-products";
 import { offerNetCost } from "@/lib/catalog";
-import { bestOfferPerStore, fetchAllStores, type Product as LiveProduct } from "@/lib/marketplace";
+import {
+  bestMatchingGroup,
+  fetchAllStores,
+  groupListings,
+  type Product as LiveProduct,
+} from "@/lib/marketplace";
 import { estimatePriceTrend } from "@/lib/price-trend";
 import { normalizeCondition, STORE_INFO } from "@/lib/store-info";
 import { formatCurrency, safeDecodeURIComponent } from "@/lib/utils";
@@ -68,7 +73,7 @@ export function generateMetadata({ params, searchParams }: Params): Metadata {
   if (!liveTitle) return { title: "Product not found" };
 
   const title = `${liveTitle} — Compare live prices`;
-  const description = `Compare live prices for ${liveTitle} across eBay, Amazon, Best Buy, and Walmart, with condition, delivery, and warranty details side by side.`;
+  const description = `Compare live prices for ${liveTitle} across eBay, Amazon, Best Buy, Walmart, and Target, with condition, delivery, and warranty details side by side.`;
 
   return {
     title,
@@ -298,7 +303,7 @@ function MockProductView({ product }: { product: NonNullable<ReturnType<typeof p
 }
 
 /* ------------------------------------------------------------------ */
-/* Live marketplace listing — eBay / Amazon / Best Buy / Walmart       */
+/* Live marketplace listing — eBay / Amazon / Best Buy / Walmart / Target */
 /* ------------------------------------------------------------------ */
 
 async function LiveProductView({
@@ -312,7 +317,7 @@ async function LiveProductView({
 }) {
   // 40 (not the smaller default) so the aggregator's internal shuffle-and-slice
   // never randomly drops an entire store's results before they reach
-  // `bestOfferPerStore` — every store that answered should get a row.
+  // grouping — every store that answered should get a chance at a row.
   const { items } = await fetchAllStores(title, 40).catch(
     () => ({ items: [] as LiveProduct[], errors: [] }),
   );
@@ -325,18 +330,24 @@ async function LiveProductView({
   // built from the title alone — the one thing guaranteed to have reached
   // this component safely.
   try {
-    const offers = bestOfferPerStore(items);
+    const groups = groupListings(items);
+    const group = bestMatchingGroup(groups, { anchorId: id, title });
+    const offers = group?.deals ?? [];
     if (offers.length === 0) {
       throw new Error("No per-store offers could be derived from the live listings.");
     }
 
     const anchor =
-      items.find((item) => item.id === id) ??
+      offers.find((offer) => offer.id === id) ??
       offers.find((offer) => offer.store === preferredStore) ??
       offers[0];
 
+    if (!anchor) {
+      throw new Error("No anchor offer available for this product.");
+    }
+
     const trend = estimatePriceTrend(anchor, offers);
-    const condition = normalizeCondition(anchor.condition);
+    const condition = normalizeCondition(anchor.condition ?? null);
     const { perks, warranty } = STORE_INFO[anchor.store] ?? FALLBACK_STORE_INFO;
 
     const savings = anchor.originalPrice ? anchor.originalPrice - anchor.price : 0;

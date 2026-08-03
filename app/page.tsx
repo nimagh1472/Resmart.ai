@@ -3,10 +3,11 @@ import { Hero } from "@/components/hero";
 import { LiveProducts } from "@/components/live-products";
 import { HowItWorks } from "@/components/how-it-works";
 import { VipCta } from "@/components/vip-cta";
-import { fetchDiverseListings } from "@/lib/marketplace";
+import { fetchDiverseListings, groupListings, type Product } from "@/lib/marketplace";
 
 export default async function Home() {
-  const { items: listings } = await fetchDiverseListings().catch(() => ({ items: [] }));
+  const { items } = await fetchDiverseListings().catch(() => ({ items: [] as Product[] }));
+  const listings = groupListings(items);
 
   return (
     <>

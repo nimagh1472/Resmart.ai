@@ -4,19 +4,20 @@ import { useEffect, useState } from "react";
 import { SearchX, TriangleAlert } from "lucide-react";
 import { ListingCard } from "@/components/listing-card";
 import { ProductGridSkeleton } from "@/components/ui/skeleton";
-import type { Product } from "@/lib/marketplace";
+import type { ProductGroup } from "@/lib/marketplace";
 
 type FetchState =
   | { status: "loading" }
   | { status: "error" }
-  | { status: "ready"; items: Product[] };
+  | { status: "ready"; items: ProductGroup[] };
 
 /**
  * Fetches `/api/products/search?q=` for whatever the shopper typed — any
  * keyword, not just the mock catalog — and renders the live results merged
- * across eBay, Amazon, Best Buy, and Walmart. Client-rendered (rather than a
- * server component) so the query can change without a full navigation and
- * so the loading state is explicit.
+ * across eBay, Amazon, Best Buy, Walmart, and Target, grouped into one
+ * unified product card per item with a deal per retailer. Client-rendered
+ * (rather than a server component) so the query can change without a full
+ * navigation and so the loading state is explicit.
  */
 export function SearchResults({ query }: { query: string }) {
   const [state, setState] = useState<FetchState>({ status: "loading" });
@@ -34,7 +35,7 @@ export function SearchResults({ query }: { query: string }) {
       .then(async (res) => {
         if (!res.ok) throw new Error("upstream_error");
         const json = await res.json();
-        return json.items as Product[];
+        return json.items as ProductGroup[];
       })
       .then((items) => {
         if (!cancelled) setState({ status: "ready", items });
@@ -62,7 +63,7 @@ export function SearchResults({ query }: { query: string }) {
       {!query ? (
         <p className="text-sm text-muted-foreground">
           Type a product name above to pull live listings from eBay, Amazon,
-          Best Buy, and Walmart.
+          Best Buy, Walmart, and Target.
         </p>
       ) : state.status === "loading" ? (
         <ProductGridSkeleton count={12} />
@@ -85,8 +86,8 @@ export function SearchResults({ query }: { query: string }) {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {state.items.map((item) => (
-            <ListingCard key={item.id} item={item} />
+          {state.items.map((group) => (
+            <ListingCard key={group.id} group={group} />
           ))}
         </div>
       )}

@@ -96,7 +96,15 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3001/product/apple-mba-m2-16-512\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3001/product/some-id?title=Save%2050%25%20on%20iPhone&store=eBay\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3001/product/nope\")",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3001/product/ebay-999?title=PlayStation%205&store=eBay\")"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3001/product/ebay-999?title=PlayStation%205&store=eBay\")",
+      "Bash(curl -s \"http://localhost:3100/api/products/search?q=iphone&limit=6\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3100/product/iphone-15?title=Apple%20iPhone%2015&store=eBay\")",
+      "Bash(curl -s \"http://localhost:3100/api/products/search?q=laptop&limit=6\")",
+      "Bash(curl -s -o /tmp/product.html -w 'HTTP %{http_code}\\\\n' 'http://localhost:3100/product/lenovo-300w-gen-3?title=__CMDSUB_OUTPUT__&store=eBay')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3100/product/%25%25%25invalid\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3100/product/weird-id?title=50%25%20off%20thing&store=eBay\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3100/product/zzz?title=asdkfjalksdjflkasjdflkj9999999&store=eBay\")",
+      "Bash(pkill -f \"next dev -p 3100\")"
     ]
   }
 }

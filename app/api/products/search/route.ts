@@ -1,16 +1,26 @@
 import { NextResponse } from "next/server";
-import { fetchAllStores, fetchDiverseListings, DEFAULT_SEARCH_CATEGORIES } from "@/lib/marketplace";
+import {
+  DEFAULT_SEARCH_CATEGORIES,
+  fetchAllStores,
+  fetchDiverseListings,
+  groupListings,
+} from "@/lib/marketplace";
 
 /**
  * GET /api/products/search
  *
- * Live inventory feed aggregated across eBay, Amazon, Best Buy, and Walmart
- * via RapidAPI, merged and shuffled into one mixed-store feed.
+ * Live inventory feed aggregated across eBay, Amazon, Best Buy, Walmart, and
+ * Target via RapidAPI. Raw per-store listings are normalized and clustered
+ * by core title/model similarity (`groupListings`) into unified product
+ * cards — each card's `deals` array holds one offer per retailer carrying
+ * that product, with its own price, condition, and purchase URL, so the
+ * client can render a single comparison card per product instead of a flat
+ * dump of every individual listing.
  *
  * Query params:
  *   q       search term (defaults to a diverse mix of popular open-box
  *           categories — PS5, iPhone, MacBook, OLED TV, Dyson, AirPods Max)
- *   limit   1–50 (default 20)
+ *   limit   1–50 grouped product cards returned (default 20)
  *
  * Each store is queried strictly in parallel (`Promise.allSettled` inside
  * `fetchAllStores`/`fetchDiverseListings`) with a 3s per-request timeout, so
@@ -25,17 +35,24 @@ export async function GET(request: Request) {
   const q = searchParams.get("q")?.trim() || "";
   const limit = Math.min(50, Math.max(1, Number(searchParams.get("limit")) || 20));
 
+  // Fetch more raw listings than `limit` so grouping — which collapses
+  // several listings into one card — still has enough material to return
+  // close to `limit` distinct product cards.
+  const rawLimit = Math.min(50, Math.max(limit * 2, 30));
+
   try {
     const { items, errors } = q
-      ? await fetchAllStores(q, limit)
-      : await fetchDiverseListings(DEFAULT_SEARCH_CATEGORIES, limit);
+      ? await fetchAllStores(q, rawLimit)
+      : await fetchDiverseListings(DEFAULT_SEARCH_CATEGORIES, rawLimit);
+
+    const groups = groupListings(items).slice(0, limit);
 
     return NextResponse.json(
       {
         source: "rapidapi-multi",
         query: q || "diverse-mix",
-        count: items.length,
-        items,
+        count: groups.length,
+        items: groups,
         ...(errors.length ? { partialErrors: errors } : {}),
       },
       { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" } },
