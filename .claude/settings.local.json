@@ -49,7 +49,22 @@
       "Bash(npx tsc *)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(curl -s \"http://localhost:3000/api/products/search?q=laptop&limit=3\")",
-      "Bash(curl -s \"http://localhost:3000/\")"
+      "Bash(curl -s \"http://localhost:3000/\")",
+      "Bash(npm ls *)",
+      "Bash(npx --no-install playwright --version)",
+      "Read(//c/Users/eghaz/AppData/Local/npm-cache/_npx/**)",
+      "Read(//c//**)",
+      "Bash(npm cache *)",
+      "Bash(find 'C:\\\\Users\\\\eghaz' -maxdepth 4 -iname *playwright*)",
+      "Bash(mkdir -p /tmp/pw-driver)",
+      "Bash(npm init *)",
+      "Bash(npm install *)",
+      "Bash(cygpath -w /tmp/4-search-results.png)",
+      "Bash(cygpath -w /tmp/6-bicycle-loading.png)",
+      "Bash(cygpath -w /tmp/1-home.png)",
+      "Bash(python3 -c \"import os; print\\(os.path.realpath\\('/tmp/1-home.png'\\)\\)\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
