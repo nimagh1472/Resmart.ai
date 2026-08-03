@@ -4,18 +4,19 @@ import { useEffect, useState } from "react";
 import { SearchX, TriangleAlert } from "lucide-react";
 import { ListingCard } from "@/components/listing-card";
 import { ProductGridSkeleton } from "@/components/ui/skeleton";
-import type { EbayListing } from "@/lib/ebay";
+import type { Product } from "@/lib/marketplace";
 
 type FetchState =
   | { status: "loading" }
   | { status: "error" }
-  | { status: "ready"; items: EbayListing[] };
+  | { status: "ready"; items: Product[] };
 
 /**
  * Fetches `/api/products/search?q=` for whatever the shopper typed — any
- * keyword, not just the mock catalog — and renders the live eBay results.
- * Client-rendered (rather than a server component) so the query can change
- * without a full navigation and so the loading state is explicit.
+ * keyword, not just the mock catalog — and renders the live results merged
+ * across eBay, Amazon, Best Buy, and Walmart. Client-rendered (rather than a
+ * server component) so the query can change without a full navigation and
+ * so the loading state is explicit.
  */
 export function SearchResults({ query }: { query: string }) {
   const [state, setState] = useState<FetchState>({ status: "loading" });
@@ -33,7 +34,7 @@ export function SearchResults({ query }: { query: string }) {
       .then(async (res) => {
         if (!res.ok) throw new Error("upstream_error");
         const json = await res.json();
-        return json.items as EbayListing[];
+        return json.items as Product[];
       })
       .then((items) => {
         if (!cancelled) setState({ status: "ready", items });
@@ -60,7 +61,8 @@ export function SearchResults({ query }: { query: string }) {
 
       {!query ? (
         <p className="text-sm text-muted-foreground">
-          Type a product name above to pull live listings from eBay.
+          Type a product name above to pull live listings from eBay, Amazon,
+          Best Buy, and Walmart.
         </p>
       ) : state.status === "loading" ? (
         <ProductGridSkeleton count={12} />

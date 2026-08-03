@@ -64,7 +64,17 @@
       "Bash(cygpath -w /tmp/1-home.png)",
       "Bash(python3 -c \"import os; print\\(os.path.realpath\\('/tmp/1-home.png'\\)\\)\")",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(npm run *)",
+      "Bash(curl -s \"http://localhost:3000/api/products/search?q=laptop&limit=8\")",
+      "Bash(curl -s -w \"\\\\nHTTP_STATUS:%{http_code}\\\\n\" \"https://walmart-data.p.rapidapi.com/search?query=laptop&page=1\" -H \"x-rapidapi-key: 094c32501amshf8b37fe08ade6cbp1fc947jsn6fec02f64d2e\" -H \"x-rapidapi-host: walmart-data.p.rapidapi.com\")",
+      "Bash(curl -s -w \"\\\\nHTTP_STATUS:%{http_code}\\\\n\" \"https://best-buy-api.p.rapidapi.com/product/search?keyword=laptop&page=1\" -H \"x-rapidapi-key: 094c32501amshf8b37fe08ade6cbp1fc947jsn6fec02f64d2e\" -H \"x-rapidapi-host: best-buy-api.p.rapidapi.com\")",
+      "Bash(curl -s \"https://best-buy-api.p.rapidapi.com/search?keyword=bicycle\" -H \"x-rapidapi-key: 094c32501amshf8b37fe08ade6cbp1fc947jsn6fec02f64d2e\" -H \"x-rapidapi-host: best-buy-api.p.rapidapi.com\")",
+      "Bash(curl -s \"https://walmart-data.p.rapidapi.com/search?query=bicycle&page=1\" -H \"x-rapidapi-key: 094c32501amshf8b37fe08ade6cbp1fc947jsn6fec02f64d2e\" -H \"x-rapidapi-host: walmart-data.p.rapidapi.com\")",
+      "Bash(curl -s \"http://localhost:3000/api/products/search?q=bicycle&limit=12\")",
+      "Bash(curl -s \"http://localhost:3000/api/products/search?q=massage%20chair&limit=8\")",
+      "Bash(curl -s \"http://localhost:3000/api/products/search?limit=12\")",
+      "Bash(powershell -NoProfile -Command 'Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '\\\\''*next*dev*'\\\\'' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }')"
     ]
   }
 }

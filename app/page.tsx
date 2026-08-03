@@ -3,10 +3,10 @@ import { Hero } from "@/components/hero";
 import { LiveProducts } from "@/components/live-products";
 import { HowItWorks } from "@/components/how-it-works";
 import { VipCta } from "@/components/vip-cta";
-import { fetchDiverseEbayListings } from "@/lib/ebay";
+import { fetchDiverseListings } from "@/lib/marketplace";
 
 export default async function Home() {
-  const listings = await fetchDiverseEbayListings().catch(() => []);
+  const { items: listings } = await fetchDiverseListings().catch(() => ({ items: [] }));
 
   return (
     <>
