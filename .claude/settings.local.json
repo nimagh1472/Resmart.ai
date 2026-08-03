@@ -85,7 +85,18 @@
       "Bash(curl -s http://localhost:3100/ -o /tmp/home.html)",
       "Bash(curl -s \"http://localhost:3100/search?q=ps5\" -o /tmp/search_page.html -w \"HTTP:%{http_code}\\\\n\")",
       "Bash(powershell -Command 'Get-Process -Name node -ErrorAction SilentlyContinue | Where-Object { $_.Path -like '\\\\''*node*'\\\\'' } | ForEach-Object { $_.Id }')",
-      "Bash(taskkill //F //IM node.exe //T)"
+      "Bash(taskkill //F //IM node.exe //T)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3000/product/apple-mba-m2-16-512\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3000/product/nonexistent-id\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3000/product/ebay-123?title=iPhone%2015&store=eBay\")",
+      "Bash(curl -s \"http://localhost:3000/api/products/search?q=iPhone%2015\")",
+      "Bash(curl -s -o /tmp/resp1.html -w \"%{http_code}\\\\n\" \"http://localhost:3000/product/test-id?title=Bad%25Title&store=eBay\")",
+      "Bash(curl -s -o /tmp/resp2.html -w \"%{http_code}\\\\n\" \"http://localhost:3000/product/%E0%A4%A\")",
+      "Bash(curl -s -o /tmp/resp3.html -w \"%{http_code}\\\\n\" \"http://localhost:3000/product/test%\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3001/product/apple-mba-m2-16-512\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3001/product/some-id?title=Save%2050%25%20on%20iPhone&store=eBay\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3001/product/nope\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3001/product/ebay-999?title=PlayStation%205&store=eBay\")"
     ]
   }
 }

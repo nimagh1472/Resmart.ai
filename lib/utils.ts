@@ -25,6 +25,21 @@ export function formatDate(iso: string) {
 }
 
 /**
+ * Decodes a route param or query value that may already be decoded, may be
+ * malformed (a lone `%` from a title like "50% off" — not a real escape
+ * sequence), or may be legitimately un-decodable. `decodeURIComponent` throws
+ * a `URIError` on malformed input, which would otherwise crash the whole page
+ * render; this falls back to the raw string instead.
+ */
+export function safeDecodeURIComponent(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+/**
  * Gate for any URL that reaches an `href`. Affiliate destinations arrive from
  * merchant feeds, so they're untrusted input: anything that isn't an absolute
  * http(s) URL — `javascript:`, `data:`, a relative path that would keep the

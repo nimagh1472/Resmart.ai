@@ -22,7 +22,14 @@ import { offerNetCost } from "@/lib/catalog";
 import { bestOfferPerStore, fetchAllStores, type Product as LiveProduct } from "@/lib/marketplace";
 import { estimatePriceTrend } from "@/lib/price-trend";
 import { normalizeCondition, STORE_INFO } from "@/lib/store-info";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, safeDecodeURIComponent } from "@/lib/utils";
+
+/** Generic per-store reference data when a listing's store is somehow outside the known set. */
+const FALLBACK_STORE_INFO = {
+  color: "#64748b",
+  perks: [] as string[],
+  warranty: "Check the retailer's page for their current return and warranty policy.",
+};
 
 type Params = {
   params: { id: string };
@@ -40,7 +47,8 @@ export function generateStaticParams() {
 }
 
 export function generateMetadata({ params, searchParams }: Params): Metadata {
-  const product = productById(params.id);
+  const id = safeDecodeURIComponent(params.id);
+  const product = productById(id);
 
   if (product) {
     const title = `${product.brand} ${product.model}`;
@@ -56,7 +64,7 @@ export function generateMetadata({ params, searchParams }: Params): Metadata {
     };
   }
 
-  const liveTitle = searchParams.title?.trim();
+  const liveTitle = searchParams.title ? safeDecodeURIComponent(searchParams.title).trim() : "";
   if (!liveTitle) return { title: "Product not found" };
 
   const title = `${liveTitle} — Compare live prices`;
@@ -66,25 +74,24 @@ export function generateMetadata({ params, searchParams }: Params): Metadata {
     title,
     description,
     openGraph: { title, description, type: "website" },
-    alternates: { canonical: `/product/${encodeURIComponent(params.id)}` },
+    alternates: { canonical: `/product/${encodeURIComponent(id)}` },
   };
 }
 
 export default function ProductPage({ params, searchParams }: Params) {
-  const product = productById(params.id);
+  const id = safeDecodeURIComponent(params.id);
+  const product = productById(id);
 
   if (product) return <MockProductView product={product} />;
 
-  const liveTitle = searchParams.title?.trim();
+  const liveTitle = searchParams.title ? safeDecodeURIComponent(searchParams.title).trim() : "";
   if (!liveTitle) notFound();
 
-  return (
-    <LiveProductView
-      id={params.id}
-      title={liveTitle}
-      preferredStore={searchParams.store}
-    />
-  );
+  const preferredStore = searchParams.store
+    ? safeDecodeURIComponent(searchParams.store)
+    : undefined;
+
+  return <LiveProductView id={id} title={liveTitle} preferredStore={preferredStore} />;
 }
 
 /* ------------------------------------------------------------------ */
@@ -312,23 +319,33 @@ async function LiveProductView({
 
   if (items.length === 0) notFound();
 
-  const offers = bestOfferPerStore(items);
-  const anchor =
-    items.find((item) => item.id === id) ??
-    offers.find((offer) => offer.store === preferredStore) ??
-    offers[0];
+  // Everything below reads fields the RapidAPI feeds don't formally guarantee
+  // (a store's shape can drift without notice). Rather than let a malformed
+  // listing crash the whole page with a 500, fall back to a minimal view
+  // built from the title alone — the one thing guaranteed to have reached
+  // this component safely.
+  try {
+    const offers = bestOfferPerStore(items);
+    if (offers.length === 0) {
+      throw new Error("No per-store offers could be derived from the live listings.");
+    }
 
-  const trend = estimatePriceTrend(anchor, offers);
-  const condition = normalizeCondition(anchor.condition);
-  const { perks, warranty } = STORE_INFO[anchor.store];
+    const anchor =
+      items.find((item) => item.id === id) ??
+      offers.find((offer) => offer.store === preferredStore) ??
+      offers[0];
 
-  const savings = anchor.originalPrice ? anchor.originalPrice - anchor.price : 0;
-  const savingsPct =
-    anchor.originalPrice && anchor.originalPrice > 0
-      ? Math.round((savings / anchor.originalPrice) * 100)
-      : 0;
+    const trend = estimatePriceTrend(anchor, offers);
+    const condition = normalizeCondition(anchor.condition);
+    const { perks, warranty } = STORE_INFO[anchor.store] ?? FALLBACK_STORE_INFO;
 
-  return (
+    const savings = anchor.originalPrice ? anchor.originalPrice - anchor.price : 0;
+    const savingsPct =
+      anchor.originalPrice && anchor.originalPrice > 0
+        ? Math.round((savings / anchor.originalPrice) * 100)
+        : 0;
+
+    return (
     <>
       <Navbar />
       <main className="min-h-dvh bg-canvas">
@@ -487,6 +504,43 @@ async function LiveProductView({
           <div id="offers" className="scroll-mt-24 pt-12 sm:pt-16">
             <LivePriceComparison productId={id} title={title} offers={offers} />
           </div>
+        </div>
+      </main>
+    </>
+    );
+  } catch (error) {
+    console.error(`Failed to render live comparison for "${title}":`, error);
+    return <LiveProductFallback title={title} />;
+  }
+}
+
+/**
+ * Shown when the live feed returned listings but something about them
+ * couldn't be safely turned into a comparison (an unexpected store shape, a
+ * missing price, etc.) — rather than a 500, the shopper still sees the
+ * product they searched for and a way back into search.
+ */
+function LiveProductFallback({ title }: { title: string }) {
+  return (
+    <>
+      <Navbar />
+      <main className="min-h-dvh bg-canvas">
+        <div className="px-gutter mx-auto flex max-w-2xl flex-col items-center gap-5 py-24 text-center sm:py-32">
+          <Package className="h-12 w-12 text-surface-border" aria-hidden="true" />
+          <h1 className="text-balance font-heading text-2xl font-bold sm:text-3xl">
+            {title}
+          </h1>
+          <p className="text-balance text-sm text-muted">
+            Live price comparison for this item is temporarily unavailable —
+            retailer data didn&apos;t come back in a shape we could compare.
+            Try again in a moment, or search for it again.
+          </p>
+          <Link
+            href={`/search?q=${encodeURIComponent(title)}`}
+            className="mt-2 rounded-sm text-sm font-medium text-accent-strong underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            Search for &quot;{title}&quot; again
+          </Link>
         </div>
       </main>
     </>
