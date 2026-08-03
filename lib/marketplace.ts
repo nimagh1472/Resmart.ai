@@ -50,8 +50,16 @@ function requireApiKey(): string {
   return apiKey;
 }
 
-/** A slow store must never hold up the whole search — abort and let the others win. */
-const REQUEST_TIMEOUT_MS = 3000;
+/**
+ * A slow store must never hold up the whole search — abort and let the
+ * others win. 3s was too aggressive in practice: Walmart's endpoint alone
+ * regularly takes 5-14s to respond, so at 3s it failed on almost every
+ * request and the aggregator quietly degraded to eBay-only results. 8s
+ * covers the slow stores while still bounding worst-case latency, and an
+ * hour of caching (`CACHE_REVALIDATE_SECONDS`) means only the first request
+ * per query pays it.
+ */
+const REQUEST_TIMEOUT_MS = 8000;
 
 /** Every store fetch is cached for an hour so a repeated query is sub-second. */
 const CACHE_REVALIDATE_SECONDS = 3600;
@@ -198,6 +206,12 @@ export async function fetchAmazonListings(query: string, limit = 20): Promise<Pr
 // which is outside this app's control. That's detected below and surfaced
 // as a normal thrown error so it lands in `partialErrors` like any other
 // failed store instead of silently returning zero results.
+//
+// The listings themselves live under `body.products` (confirmed against a
+// live response), not at the top level, and each item's price is a nested
+// object (`{ currentPrice, rawPrice, originalPrice }` as formatted/raw
+// strings) rather than a flat field — both were previously mismatched, which
+// silently produced zero Best Buy results every time instead of an error.
 // ---------------------------------------------------------------------------
 
 export async function fetchBestBuyListings(query: string, limit = 20): Promise<Product[]> {
@@ -210,17 +224,32 @@ export async function fetchBestBuyListings(query: string, limit = 20): Promise<P
     throw new Error(`Best Buy crawl failed with upstream status ${json.cb_status}`);
   }
 
-  const raw = (pick(json, ["products", "results", "data"]) as unknown[]) ?? [];
+  const body = (json.body as Record<string, unknown>) ?? json;
+  const raw = (pick(body, ["products", "results", "data"]) as unknown[]) ?? [];
 
   return raw.slice(0, limit).map((entry, i) => {
     const item = entry as Record<string, unknown>;
-    const price = parsePrice(pick(item, ["salePrice", "price", "currentPrice"]));
-    const originalRaw = pick(item, ["regularPrice", "listPrice", "originalPrice", "wasPrice"]);
-    const originalPrice = originalRaw != null ? parsePrice(originalRaw) : null;
-    const id = pick(item, ["sku", "id", "productId"]);
+    const priceInfo = pick(item, ["price"]);
+    const priceObj =
+      priceInfo && typeof priceInfo === "object" ? (priceInfo as Record<string, unknown>) : null;
+
+    const price = parsePrice(
+      priceObj
+        ? pick(priceObj, ["rawPrice", "currentPrice"])
+        : pick(item, ["salePrice", "price", "currentPrice"]),
+    );
+    const originalRaw = priceObj
+      ? pick(priceObj, ["originalPrice"])
+      : pick(item, ["regularPrice", "listPrice", "originalPrice", "wasPrice"]);
+    const originalPrice = originalRaw != null && originalRaw !== "" ? parsePrice(originalRaw) : null;
+
+    // `sku` frequently comes back as an empty string rather than absent, and
+    // `pick` only treats null/undefined as missing — fall back on falsiness
+    // here so every listing doesn't collapse onto the same "bestbuy-" id.
+    const id = pick(item, ["sku", "id", "productId"]) || i;
 
     return {
-      id: `bestbuy-${id ?? i}`,
+      id: `bestbuy-${id}`,
       title: String(pick(item, ["name", "title", "productName"]) ?? "Untitled listing"),
       price,
       originalPrice: normalizeOriginalPrice(price, originalPrice),
@@ -496,13 +525,13 @@ export type ProductGroup = {
   highestListPrice: number | null;
 };
 
-function slugify(text: string): string {
+function slugify(text: string, maxLength = 60): string {
   return (
     text
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "")
-      .slice(0, 60) || "item"
+      .slice(0, maxLength) || "item"
   );
 }
 
@@ -547,8 +576,16 @@ export function groupListings(items: Product[]): ProductGroup[] {
         .map((deal) => deal.originalPrice)
         .filter((price): price is number => price != null);
 
+      // Raw per-store listing ids carry characters App Router dynamic
+      // segments shouldn't see raw — eBay ids look like `v1|206428227136|0`.
+      // `encodeURIComponent` alone would percent-encode rather than strip
+      // them, so both halves are slugged here to keep the id itself plain
+      // ASCII, then joined — the title slug for readability, the id slug
+      // (capped shorter, since it's just a uniqueness key) to keep two
+      // clusters with near-identical long titles from colliding after
+      // truncation.
       return {
-        id: `${slugify(cluster.title)}-${deals[0]?.id ?? "0"}`,
+        id: `${slugify(cluster.title, 50)}-${slugify(deals[0]?.id ?? "0", 40)}`,
         title: cluster.title,
         image: deals.find((deal) => deal.image)?.image ?? null,
         deals,

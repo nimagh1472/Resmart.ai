@@ -104,7 +104,32 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3100/product/%25%25%25invalid\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3100/product/weird-id?title=50%25%20off%20thing&store=eBay\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3100/product/zzz?title=asdkfjalksdjflkasjdflkj9999999&store=eBay\")",
-      "Bash(pkill -f \"next dev -p 3100\")"
+      "Bash(pkill -f \"next dev -p 3100\")",
+      "Bash(curl -s \"http://localhost:3000/api/products/search?q=PlayStation%205&limit=5\")",
+      "Bash(curl -s -H 'x-rapidapi-key: __TRACKED_VAR__' -H 'x-rapidapi-host: best-buy-api.p.rapidapi.com' https://best-buy-api.p.rapidapi.com/search?st=PlayStation%205)",
+      "Bash(curl -s -m 15 -H 'x-rapidapi-key: __TRACKED_VAR__' -H 'x-rapidapi-host: walmart-data.p.rapidapi.com' 'https://walmart-data.p.rapidapi.com/search?q=PlayStation%205&page=1')",
+      "Bash(curl -s -o /dev/null -w 'time: %{time_total}s\\\\n' -H 'x-rapidapi-key: __TRACKED_VAR__' -H 'x-rapidapi-host: walmart-data.p.rapidapi.com' 'https://walmart-data.p.rapidapi.com/search?q=PlayStation%205&page=1')",
+      "Bash(curl -s -o /dev/null -w '%{time_total}s\\\\n' -H 'x-rapidapi-key: __TRACKED_VAR__' -H 'x-rapidapi-host: real-time-ebay-data.p.rapidapi.com' https://real-time-ebay-data.p.rapidapi.com/ebay_search?q=PlayStation%205)",
+      "Bash(curl -s -o /dev/null -w '%{time_total}s\\\\n' -H 'x-rapidapi-key: __TRACKED_VAR__' -H 'x-rapidapi-host: best-buy-api.p.rapidapi.com' https://best-buy-api.p.rapidapi.com/search?st=PlayStation%205)",
+      "Bash(curl -s -H 'x-rapidapi-key: __TRACKED_VAR__' -H 'x-rapidapi-host: walmart-data.p.rapidapi.com' 'https://walmart-data.p.rapidapi.com/search?q=PlayStation%205&page=1' -o /tmp/walmart.json)",
+      "Bash(curl -s -H 'x-rapidapi-key: __TRACKED_VAR__' -H 'x-rapidapi-host: walmart-data.p.rapidapi.com' 'https://walmart-data.p.rapidapi.com/search?q=PlayStation%205&page=1' -o ./tmp_walmart.json)",
+      "Bash(rm -f ./tmp_walmart.json)",
+      "Bash(curl -s -H 'x-rapidapi-key: __TRACKED_VAR__' -H 'x-rapidapi-host: best-buy-api.p.rapidapi.com' https://best-buy-api.p.rapidapi.com/search?st=PlayStation%205 -o ./tmp_bb.json)",
+      "Bash(rm -f ./tmp_bb.json)",
+      "Bash(curl -s \"http://localhost:3000/api/products/search?q=Nintendo%20Switch%20OLED&limit=20\" -o ./tmp_search2.json)",
+      "Bash(curl -s -o ./tmp_product.html -w 'HTTP status: %{http_code}\\\\n' http://localhost:3000/product/__TRACKED_VAR__?title=__TRACKED_VAR__)",
+      "Bash(curl -s -o /dev/null -w \"status: %{http_code}\\\\n\" \"http://localhost:3000/product/apple-mba-m2-16-512\")",
+      "Bash(curl -s -o /dev/null -w \"status: %{http_code}\\\\n\" \"http://localhost:3000/product/some-unknown-id-123\")",
+      "Bash(curl -s -o /dev/null -w \"status: %{http_code}\\\\n\" \"http://localhost:3000/product/some-unknown-id-123?title=PlayStation%205\")",
+      "Bash(netstat -ano)",
+      "Bash(curl -s \"http://localhost:3000/api/products/search?q=Nintendo%20Switch%20OLED&limit=20\" -o ./tmp_search3.json)",
+      "Bash(curl -s -o ./tmp_product2.html -w 'HTTP status: %{http_code}\\\\n' http://localhost:3000/product/__TRACKED_VAR__?title=__TRACKED_VAR__)",
+      "Bash(curl -s -o /dev/null -w \"status: %{http_code}\\\\n\" \"http://localhost:3000/\")",
+      "Bash(curl -s -o /dev/null -w \"status: %{http_code}\\\\n\" \"http://localhost:3000/search?q=laptop\")",
+      "Bash(curl -s \"http://localhost:3000/api/products/search?q=Dyson&limit=5\" -o ./tmp_search4.json)",
+      "Bash(curl -s -o /dev/null -w 'status: %{http_code}\\\\n' 'http://localhost:3000/product/__TRACKED_VAR__?title=__TRACKED_VAR__&store=__TRACKED_VAR__')",
+      "Bash(rm -f tmp_search*.json tmp_product*.html)",
+      "Bash(taskkill //F //PID 24836)"
     ]
   }
 }

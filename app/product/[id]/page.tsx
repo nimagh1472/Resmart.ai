@@ -46,10 +46,27 @@ type Params = {
 };
 
 /**
- * The mock catalog is finite and known at build time, so every product page is
- * prerendered. Ids outside this set are either a live marketplace listing
- * (resolved at request time from the `title`/`store` query params a listing
- * card links with) or genuinely unknown, in which case the page 404s.
+ * This route reads `searchParams` (a per-request dynamic API) to resolve
+ * live marketplace listings, and `fetchAllStores` below issues its own
+ * time-based revalidating fetches. Combined with `generateStaticParams`,
+ * that mix of "prerender these params" and "but also read per-request data"
+ * is exactly what Next's static/dynamic renderer can't reconcile: any id
+ * outside the prerendered mock set hit a framework-level
+ * `DYNAMIC_SERVER_USAGE` crash (a 500) the moment it touched `searchParams`
+ * — before this file's own try/catch guards ever got a chance to run, since
+ * live marketplace listings (i.e. nearly every product a shopper actually
+ * clicks) are never in that prerendered set. Forcing the whole route
+ * dynamic removes the ambiguity; the mock catalog lookup below is an
+ * in-memory array read, so rendering it per-request instead of prebuilding
+ * it is not a meaningful performance cost.
+ */
+export const dynamic = "force-dynamic";
+
+/**
+ * The mock catalog is finite and known at build time. Ids outside this set
+ * are either a live marketplace listing (resolved at request time from the
+ * `title`/`store` query params a listing card links with) or genuinely
+ * unknown, in which case the page 404s.
  */
 export function generateStaticParams() {
   return MOCK_PRODUCTS.map((p) => ({ id: p.id }));
