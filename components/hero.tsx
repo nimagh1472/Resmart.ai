@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { motion } from "framer-motion";
 import { ShieldCheck, Store, Sparkles } from "lucide-react";
@@ -37,7 +37,7 @@ export function Hero() {
         <motion.span
           variants={fadeUp}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="inline-flex items-center gap-2 rounded-full border border-surface-border bg-surface px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-widest text-accent"
+          className="inline-flex items-center gap-2 rounded-full border border-surface-border bg-surface px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-widest text-accent-strong"
         >
           <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
           Powered by Vision AI
@@ -92,7 +92,7 @@ export function Hero() {
               key={label}
               className="flex items-center gap-2 text-xs text-muted-foreground"
             >
-              <Icon className="h-3.5 w-3.5 text-vip" aria-hidden="true" />
+              <Icon className="h-3.5 w-3.5 text-vip-strong" aria-hidden="true" />
               {label}
             </li>
           ))}

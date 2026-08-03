@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { Logo } from "@/components/ui/logo";
 import { buttonStyles } from "@/components/ui/button-styles";
 
@@ -9,7 +9,7 @@ export function MerchantHeader({
   action?: "dashboard" | "exit";
 }) {
   return (
-    <header className="pt-safe sticky top-0 z-40 border-b border-surface-border bg-canvas/80 backdrop-blur-xl">
+    <header className="pt-safe sticky top-0 z-40 border-b border-surface-border bg-surface/85 backdrop-blur-xl">
       <div className="px-gutter mx-auto flex h-16 max-w-7xl items-center gap-3">
         <Link
           href="/"

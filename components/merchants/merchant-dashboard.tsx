@@ -16,6 +16,8 @@ import { SideDrawer } from "@/components/ui/side-drawer";
 import { Button } from "@/components/ui/button";
 import { useIsDesktop } from "@/lib/use-media-query";
 import { ApprovalBanner } from "@/components/merchants/approval-banner";
+import { VerificationCard } from "@/components/merchants/verification-card";
+import { MerchantKycForm } from "@/components/merchants/kyc-form";
 import { WalletCard } from "@/components/merchants/wallet-card";
 import {
   InventoryForm,
@@ -46,6 +48,7 @@ export function MerchantDashboard() {
   const [editing, setEditing] = useState<MerchantListing | null>(null);
   const [deleting, setDeleting] = useState<MerchantListing | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [kycOpen, setKycOpen] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
   const isDesktop = useIsDesktop();
@@ -156,12 +159,12 @@ export function MerchantDashboard() {
       />
 
       <section
-        className="flex flex-col gap-5 rounded-2xl border border-surface-border bg-surface p-5"
+        className="flex flex-col gap-5 rounded-2xl border border-surface-border bg-surface shadow-card p-5"
         aria-labelledby="add-inventory-heading"
       >
         <div className="flex items-center gap-2">
           <span className="rounded-lg bg-accent/10 p-2 ring-1 ring-inset ring-accent/20">
-            <PackagePlus className="h-4 w-4 text-accent" aria-hidden="true" />
+            <PackagePlus className="h-4 w-4 text-accent-strong" aria-hidden="true" />
           </span>
           <h2
             id="add-inventory-heading"
@@ -195,8 +198,10 @@ export function MerchantDashboard() {
 
       <ApprovalBanner profile={profile} />
 
+      <VerificationCard profile={profile} onOpen={() => setKycOpen(true)} />
+
       {/* Summary strip -------------------------------------------- */}
-      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-surface-border bg-surface-border lg:grid-cols-5">
+      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-surface-border bg-surface shadow-card-border lg:grid-cols-5">
         <Summary
           icon={MousePointerClick}
           label="Clicks"
@@ -247,10 +252,10 @@ export function MerchantDashboard() {
               className="flex items-start gap-3 rounded-xl border border-rose-500/25 bg-rose-500/[0.06] p-4"
             >
               <AlertTriangle
-                className="mt-0.5 h-4 w-4 shrink-0 text-rose-300"
+                className="mt-0.5 h-4 w-4 shrink-0 text-rose-600"
                 aria-hidden="true"
               />
-              <p className="text-sm text-rose-100">{apiError}</p>
+              <p className="text-sm text-rose-700">{apiError}</p>
               <button
                 type="button"
                 onClick={() => setApiError(null)}
@@ -288,6 +293,35 @@ export function MerchantDashboard() {
         onChange={(status) => setProfile((p) => ({ ...p, status }))}
       />
 
+      {/* Business verification (KYC) -------------------------------- */}
+      <Modal
+        open={kycOpen}
+        onClose={() => setKycOpen(false)}
+        title="Business verification"
+        description="Required before an admin can approve the account."
+        className="sm:max-w-2xl"
+      >
+        <div className="p-5">
+          <MerchantKycForm
+            initial={profile.kyc ?? { legalBusinessName: profile.businessName }}
+            onCancel={() => setKycOpen(false)}
+            onSubmitted={(submission, kyc) => {
+              // The API owns the decision, so the local profile only mirrors
+              // what came back: pending review, with the details on file.
+              setProfile((p) => ({
+                ...p,
+                businessName: kyc.legalBusinessName,
+                status: "pending",
+                kyc,
+                applicationId: submission.id,
+                submittedOn: submission.submittedAt.slice(0, 10),
+              }));
+              setKycOpen(false);
+            }}
+          />
+        </div>
+      </Modal>
+
       {/* Edit ------------------------------------------------------ */}
       <Modal
         open={editing !== null}
@@ -320,13 +354,13 @@ export function MerchantDashboard() {
         <div className="flex flex-col gap-5 p-5">
           <div className="flex items-start gap-3 rounded-xl border border-rose-500/25 bg-rose-500/[0.06] p-4">
             <AlertTriangle
-              className="mt-0.5 h-5 w-5 shrink-0 text-rose-300"
+              className="mt-0.5 h-5 w-5 shrink-0 text-rose-600"
               aria-hidden="true"
             />
             <div className="min-w-0">
               <p className="text-sm font-medium">
                 Delete{" "}
-                <span className="text-rose-200">{deleting?.title}</span>?
+                <span className="text-rose-700">{deleting?.title}</span>?
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 This removes the listing and its performance history. Sales
@@ -346,7 +380,7 @@ export function MerchantDashboard() {
             <Button
               fullWidth
               onClick={confirmDelete}
-              className="bg-gradient-to-r from-rose-500 to-rose-400 text-canvas shadow-none hover:from-rose-400 hover:to-rose-300 focus-visible:outline-rose-400"
+              className="bg-gradient-to-r from-rose-600 to-rose-500 text-white shadow-none hover:from-rose-500 hover:to-rose-400 focus-visible:outline-rose-400"
             >
               Delete listing
             </Button>
@@ -381,8 +415,8 @@ function Summary({
       <dd
         className={cn(
           "font-mono text-2xl font-semibold tabular-nums",
-          tone === "vip" && "text-vip",
-          tone === "amber" && "text-amber-300",
+          tone === "vip" && "text-vip-strong",
+          tone === "amber" && "text-amber-600",
           tone === "default" && "text-foreground",
         )}
       >
@@ -415,7 +449,7 @@ function StatusSwitcher({
           className={cn(
             "rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-wider transition",
             status === s
-              ? "border-accent/50 bg-accent/10 text-accent"
+              ? "border-accent/50 bg-accent/10 text-accent-strong"
               : "border-surface-border text-muted hover:text-foreground",
           )}
         >

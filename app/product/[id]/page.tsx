@@ -89,7 +89,7 @@ export default function ProductPage({ params }: Params) {
               <li>
                 <Link
                   href="/"
-                  className="rounded-sm transition-colors hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  className="rounded-sm transition-colors hover:text-accent-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                   Home
                 </Link>
@@ -98,7 +98,7 @@ export default function ProductPage({ params }: Params) {
               <li>
                 <Link
                   href="/#deals"
-                  className="rounded-sm transition-colors hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  className="rounded-sm transition-colors hover:text-accent-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                   {CATEGORY_LABELS[category]}
                 </Link>
@@ -124,9 +124,9 @@ export default function ProductPage({ params }: Params) {
               </div>
 
               {/* Price summary -------------------------------------- */}
-              <div className="flex flex-wrap items-end gap-x-8 gap-y-4 rounded-2xl border border-surface-border bg-surface p-5">
+              <div className="flex flex-wrap items-end gap-x-8 gap-y-4 rounded-2xl border border-surface-border bg-surface shadow-card p-5">
                 <div>
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-accent">
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-accent-strong">
                     Best open-box price
                   </p>
                   <p className="font-mono text-3xl font-semibold tabular-nums leading-tight text-foreground sm:text-4xl">
@@ -156,41 +156,41 @@ export default function ProductPage({ params }: Params) {
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="flex items-center gap-2 rounded-xl bg-vip/10 px-3.5 py-2.5 ring-1 ring-inset ring-vip/25">
                   <TrendingDown
-                    className="h-4 w-4 shrink-0 text-vip"
+                    className="h-4 w-4 shrink-0 text-vip-strong"
                     aria-hidden="true"
                   />
-                  <p className="font-mono text-sm font-semibold tabular-nums text-vip">
+                  <p className="font-mono text-sm font-semibold tabular-nums text-vip-strong">
                     Save {savingsPct}%{" "}
-                    <span className="text-vip/70">/</span>{" "}
+                    <span className="text-vip-strong/70">/</span>{" "}
                     {formatCurrency(savings)}
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2 rounded-xl border border-vip/25 bg-vip/[0.06] px-3.5 py-2.5">
                   <Wallet
-                    className="h-4 w-4 shrink-0 text-vip"
+                    className="h-4 w-4 shrink-0 text-vip-strong"
                     aria-hidden="true"
                   />
                   <p className="text-xs leading-snug text-muted">
                     +{" "}
-                    <span className="font-mono font-semibold tabular-nums text-vip">
+                    <span className="font-mono font-semibold tabular-nums text-vip-strong">
                       {formatCurrency(cashback, { cents: true })}
                     </span>{" "}
                     Cashback for{" "}
-                    <span className="font-medium text-vip">VIP Members</span>
+                    <span className="font-medium text-vip-strong">VIP Members</span>
                   </p>
                 </div>
               </div>
 
               {/* 90-day trend --------------------------------------- */}
-              <div className="rounded-2xl border border-surface-border bg-canvas/40 p-4">
+              <div className="rounded-2xl border border-surface-border bg-canvas p-4">
                 <div className="mb-2 flex items-baseline justify-between gap-2">
                   <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                     90-Day Price Trend
                   </span>
                   <span
                     className={`font-mono text-[10px] tabular-nums ${
-                      ninetyDayDelta < 0 ? "text-vip" : "text-muted-foreground"
+                      ninetyDayDelta < 0 ? "text-vip-strong" : "text-muted-foreground"
                     }`}
                   >
                     {ninetyDayDelta < 0 ? "▼" : ninetyDayDelta > 0 ? "▲" : "—"}{" "}
@@ -208,7 +208,7 @@ export default function ProductPage({ params }: Params) {
 
               {/* Specs ---------------------------------------------- */}
               {specs && specs.length > 0 && (
-                <div className="rounded-2xl border border-surface-border bg-surface p-5">
+                <div className="rounded-2xl border border-surface-border bg-surface shadow-card p-5">
                   <h2 className="mb-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                     Specifications
                   </h2>

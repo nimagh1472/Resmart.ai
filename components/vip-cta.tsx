@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ export function VipCta() {
         />
 
         <div className="relative flex flex-col items-center gap-4">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-vip/25 bg-vip/10 px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-vip">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-vip/25 bg-vip/10 px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-vip-strong">
             <Crown className="h-3.5 w-3.5" aria-hidden="true" />
             ReSmart VIP
           </span>

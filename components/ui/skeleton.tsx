@@ -16,7 +16,7 @@ export function Skeleton({
       )}
       {...props}
     >
-      <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/[0.07] to-transparent" />
+      <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/70 to-transparent" />
     </div>
   );
 }
@@ -26,7 +26,7 @@ export function ProductCardSkeleton({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 rounded-2xl border border-surface-border bg-surface p-3",
+        "flex flex-col gap-3 rounded-2xl border border-surface-border bg-surface shadow-card p-3",
         className,
       )}
     >

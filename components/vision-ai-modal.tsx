@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -206,16 +206,16 @@ export function VisionAiModal({
                   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
                   dragging
                     ? "border-accent bg-accent/[0.07] shadow-glow"
-                    : "border-surface-border bg-canvas/40 hover:border-accent/40",
+                    : "border-surface-border bg-canvas hover:border-accent/40",
                 )}
               >
                 <div
                   className={cn(
                     "rounded-xl border border-surface-border bg-surface p-3 transition",
-                    dragging && "border-accent/50 text-accent",
+                    dragging && "border-accent/50 text-accent-strong",
                   )}
                 >
-                  <ImageUp className="h-6 w-6 text-accent" />
+                  <ImageUp className="h-6 w-6 text-accent-strong" />
                 </div>
                 <div className="flex flex-col gap-1">
                   <p className="font-heading font-medium">
@@ -254,7 +254,7 @@ export function VisionAiModal({
                     onKeyDown={(e) => e.key === "Enter" && startUrlScan()}
                     placeholder="https://www.bestbuy.com/site/macbook-air…"
                     aria-label="Retail product URL"
-                    className="h-11 w-full rounded-xl border border-surface-border bg-canvas/60 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/40"
+                    className="h-11 w-full rounded-xl border border-surface-border bg-canvas pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/40"
                   />
                 </div>
                 <Button onClick={startUrlScan} disabled={!url.trim()}>
@@ -283,7 +283,7 @@ export function VisionAiModal({
 
                 <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
                   <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-accent" />
+                    <Loader2 className="h-4 w-4 animate-spin text-accent-strong" />
                     <AnimatePresence mode="wait" initial={false}>
                       <motion.p
                         key={currentStage(progress)}
@@ -320,7 +320,7 @@ export function VisionAiModal({
                 </div>
               </div>
 
-              <div className="rounded-xl border border-surface-border bg-canvas/40 p-4">
+              <div className="rounded-xl border border-surface-border bg-canvas p-4">
                 <p className="mb-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                   Extracted tags
                 </p>
@@ -365,16 +365,16 @@ export function VisionAiModal({
               className="flex flex-col gap-5"
             >
               <div className="flex items-start gap-3 rounded-xl border border-vip/25 bg-vip/[0.06] p-4">
-                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-vip" />
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-vip-strong" />
                 <div className="min-w-0">
                   <p className="font-heading font-medium leading-snug">
                     Identified:{" "}
-                    <span className="text-vip">{IDENTIFIED_PRODUCT}</span> —{" "}
+                    <span className="text-vip-strong">{IDENTIFIED_PRODUCT}</span> —{" "}
                     {MATCHES.length} Open-Box Matches Found
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Retail {money(RETAIL_PRICE)} · best match saves{" "}
-                    <span className="font-mono text-vip">
+                    <span className="font-mono text-vip-strong">
                       {money(RETAIL_PRICE - MATCHES[0].price)}
                     </span>
                   </p>
@@ -429,7 +429,7 @@ export function VisionAiModal({
                       <span className="font-mono text-lg font-medium tabular-nums text-foreground">
                         {money(m.price)}
                       </span>
-                      <span className="font-mono text-xs tabular-nums text-vip">
+                      <span className="font-mono text-xs tabular-nums text-vip-strong">
                         −{money(RETAIL_PRICE - m.price)}
                       </span>
                     </div>
@@ -488,7 +488,7 @@ function ScanPreview({
         animate={{ top: ["-2rem", "6rem"] }}
         transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
       />
-      <ScanLine className="absolute bottom-1 right-1 h-3 w-3 text-accent/70" />
+      <ScanLine className="absolute bottom-1 right-1 h-3 w-3 text-accent-strong/70" />
     </div>
   );
 }

@@ -11,17 +11,17 @@ export type ButtonVariant = "primary" | "success" | "secondary" | "ghost";
 export type ButtonSize = "sm" | "md" | "lg";
 
 export const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
-  // Cyan gradient — the default call to action.
+  // Emerald — the default call to action.
   primary:
-    "bg-gradient-to-r from-accent to-sky-400 text-canvas shadow-glow hover:from-accent-hover hover:to-accent focus-visible:outline-accent",
-  // Emerald — reserved for cashback / payout confirmations.
+    "bg-accent text-white shadow-glow hover:bg-accent-hover active:bg-accent-strong focus-visible:outline-accent-strong",
+  // Deeper emerald — cashback / payout confirmations.
   success:
-    "bg-gradient-to-r from-vip to-emerald-400 text-canvas shadow-glow-vip hover:from-vip-hover hover:to-vip focus-visible:outline-vip",
-  // Slate with a 1px glowing border.
+    "bg-accent-hover text-white shadow-glow-vip hover:bg-accent-strong focus-visible:outline-accent-strong",
+  // White with a crisp slate hairline — the Nordic secondary.
   secondary:
-    "bg-surface text-foreground border border-surface-border shadow-[0_0_0_1px_rgba(56,189,248,0.12),0_0_18px_-6px_rgba(56,189,248,0.45)] hover:border-accent/50 hover:shadow-[0_0_0_1px_rgba(56,189,248,0.35),0_0_26px_-6px_rgba(56,189,248,0.7)] focus-visible:outline-accent",
+    "bg-surface text-navy border border-surface-border shadow-[0_1px_2px_0_rgba(15,23,42,0.05)] hover:border-accent/60 hover:bg-accent-soft hover:text-accent-strong focus-visible:outline-accent-strong",
   ghost:
-    "bg-transparent text-muted hover:bg-surface hover:text-foreground focus-visible:outline-accent",
+    "bg-transparent text-muted hover:bg-surface-raised hover:text-navy focus-visible:outline-accent-strong",
 };
 
 /**

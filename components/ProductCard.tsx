@@ -120,7 +120,7 @@ export function ProductCard({
   return (
     <article
       className={cn(
-        "group flex flex-col rounded-2xl border border-surface-border bg-surface transition-colors hover:border-accent/40",
+        "group flex flex-col rounded-2xl border border-surface-border bg-surface shadow-card transition-colors hover:border-accent/40",
         className,
       )}
     >
@@ -160,7 +160,7 @@ export function ProductCard({
         />
 
         {inStock && (
-          <span className="pointer-events-none absolute bottom-3 right-3 rounded-md bg-canvas/80 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-muted backdrop-blur">
+          <span className="pointer-events-none absolute bottom-3 right-3 rounded-md bg-surface/90 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-muted backdrop-blur">
             {inStock}
           </span>
         )}
@@ -181,7 +181,7 @@ export function ProductCard({
             className="group/title rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             <span className="text-muted">{brand}</span>{" "}
-            <span className="text-foreground transition-colors group-hover/title:text-accent">
+            <span className="text-foreground transition-colors group-hover/title:text-accent-strong">
               {model}
             </span>
           </Link>
@@ -190,7 +190,7 @@ export function ProductCard({
         {/* Price --------------------------------------------------- */}
         <div className="flex items-end justify-between gap-3">
           <div className="min-w-0">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-accent">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-accent-strong">
               ReSmart Open-Box
             </p>
             <p className="font-mono text-2xl font-semibold tabular-nums leading-tight text-foreground">
@@ -214,15 +214,15 @@ export function ProductCard({
         </div>
 
         <div className="flex items-center gap-2 rounded-lg bg-vip/10 px-3 py-2 ring-1 ring-inset ring-vip/25">
-          <TrendingDown className="h-4 w-4 shrink-0 text-vip" aria-hidden="true" />
-          <p className="font-mono text-sm font-semibold tabular-nums text-vip">
+          <TrendingDown className="h-4 w-4 shrink-0 text-vip-strong" aria-hidden="true" />
+          <p className="font-mono text-sm font-semibold tabular-nums text-vip-strong">
             Save {savingsPct}%{" "}
-            <span className="text-vip/70">/</span> {formatCurrency(savings)}
+            <span className="text-vip-strong/70">/</span> {formatCurrency(savings)}
           </p>
         </div>
 
         {/* 90-day trend -------------------------------------------- */}
-        <div className="rounded-xl border border-surface-border bg-canvas/40 p-2.5">
+        <div className="rounded-xl border border-surface-border bg-canvas p-2.5">
           <div className="mb-1.5 flex items-baseline justify-between gap-2">
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               90-Day Price Trend
@@ -230,7 +230,7 @@ export function ProductCard({
             <span
               className={cn(
                 "font-mono text-[10px] tabular-nums",
-                ninetyDayDelta < 0 ? "text-vip" : "text-muted-foreground",
+                ninetyDayDelta < 0 ? "text-vip-strong" : "text-muted-foreground",
               )}
             >
               {ninetyDayDelta < 0 ? "▼" : ninetyDayDelta > 0 ? "▲" : "—"}{" "}
@@ -247,14 +247,14 @@ export function ProductCard({
 
         {/* Cashback ------------------------------------------------- */}
         <div className="flex items-center gap-2 rounded-xl border border-vip/25 bg-vip/[0.06] px-3 py-2">
-          <Wallet className="h-4 w-4 shrink-0 text-vip" aria-hidden="true" />
+          <Wallet className="h-4 w-4 shrink-0 text-vip-strong" aria-hidden="true" />
           <p className="text-xs leading-snug text-muted">
             +{" "}
-            <span className="font-mono font-semibold tabular-nums text-vip">
+            <span className="font-mono font-semibold tabular-nums text-vip-strong">
               {formatCurrency(cashback, { cents: true })}
             </span>{" "}
             Cashback for{" "}
-            <span className="font-medium text-vip">VIP Members</span>
+            <span className="font-medium text-vip-strong">VIP Members</span>
           </p>
         </div>
 
@@ -269,7 +269,7 @@ export function ProductCard({
         >
           <span className="truncate">
             Compare {offerCount} Offer{offerCount === 1 ? "" : "s"}{" "}
-            <span className="font-mono tabular-nums text-canvas/75">
+            <span className="font-mono tabular-nums text-white/75">
               (from {formatCurrency(price)})
             </span>
           </span>

@@ -127,14 +127,14 @@ export function AnalyticsTable({
   return (
     <section
       className={cn(
-        "flex flex-col rounded-2xl border border-surface-border bg-surface",
+        "flex flex-col rounded-2xl border border-surface-border bg-surface shadow-card",
         className,
       )}
       aria-labelledby="analytics-heading"
     >
       <div className="flex flex-wrap items-center gap-2 border-b border-surface-border p-5">
         <span className="rounded-lg bg-accent/10 p-2 ring-1 ring-inset ring-accent/20">
-          <BarChart3 className="h-4 w-4 text-accent" aria-hidden="true" />
+          <BarChart3 className="h-4 w-4 text-accent-strong" aria-hidden="true" />
         </span>
         <h2
           id="analytics-heading"
@@ -193,7 +193,7 @@ export function AnalyticsTable({
                 </div>
               </div>
 
-              <dl className="grid grid-cols-3 gap-x-3 gap-y-2 rounded-xl border border-surface-border bg-canvas/40 p-3">
+              <dl className="grid grid-cols-3 gap-x-3 gap-y-2 rounded-xl border border-surface-border bg-canvas p-3">
                 <Stat label="Impr." value={num(l.impressions)} />
                 <Stat label="Clicks" value={num(l.clicks)} />
                 <Stat label="CTR" value={percent(ctr(l))} tone="accent" />
@@ -226,7 +226,7 @@ export function AnalyticsTable({
                     tone="accent"
                   />
                 ) : (
-                  <span className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-amber-300/70">
+                  <span className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-amber-600/70">
                     <Lock className="h-3 w-3" aria-hidden="true" />
                     Boost locked
                   </span>
@@ -237,7 +237,7 @@ export function AnalyticsTable({
                     type="button"
                     onClick={() => onEdit(l)}
                     aria-label={`Edit ${l.title}`}
-                    className="touch-target rounded-lg p-2 text-muted transition hover:bg-surface-raised hover:text-accent"
+                    className="touch-target rounded-lg p-2 text-muted transition hover:bg-surface-raised hover:text-accent-strong"
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
@@ -245,7 +245,7 @@ export function AnalyticsTable({
                     type="button"
                     onClick={() => onDelete(l)}
                     aria-label={`Delete ${l.title}`}
-                    className="touch-target rounded-lg p-2 text-muted transition hover:bg-surface-raised hover:text-rose-300"
+                    className="touch-target rounded-lg p-2 text-muted transition hover:bg-surface-raised hover:text-rose-600"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -297,7 +297,7 @@ export function AnalyticsTable({
                       className={cn(
                         "inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest transition",
                         active
-                          ? "text-accent"
+                          ? "text-accent-strong"
                           : "text-muted-foreground hover:text-foreground",
                       )}
                     >
@@ -350,7 +350,7 @@ export function AnalyticsTable({
                           href={l.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="group inline-flex items-center gap-1.5 truncate font-medium text-foreground hover:text-accent"
+                          className="group inline-flex items-center gap-1.5 truncate font-medium text-foreground hover:text-accent-strong"
                         >
                           <span className="truncate">{l.title}</span>
                           <ExternalLink
@@ -382,17 +382,17 @@ export function AnalyticsTable({
 
                   <Cell>{num(l.impressions)}</Cell>
                   <Cell>{num(l.clicks)}</Cell>
-                  <Cell className="text-accent">{percent(ctr(l))}</Cell>
+                  <Cell className="text-accent-strong">{percent(ctr(l))}</Cell>
                   <Cell>{formatCurrency(l.cpcBid, { cents: true })}</Cell>
                   <Cell>{formatCurrency(adSpend(l), { cents: true })}</Cell>
 
                   <Cell className="border-l border-surface-border">
                     {num(l.unitsSold)}
                   </Cell>
-                  <Cell className="font-semibold text-vip">
+                  <Cell className="font-semibold text-vip-strong">
                     {formatCurrency(revenue(l), { cents: true })}
                   </Cell>
-                  <Cell className="text-amber-300">
+                  <Cell className="text-amber-600">
                     −{formatCurrency(commission(l), { cents: true })}
                   </Cell>
 
@@ -408,7 +408,7 @@ export function AnalyticsTable({
                     ) : (
                       <span
                         title="Available after admin approval"
-                        className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-amber-300/70"
+                        className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-amber-600/70"
                       >
                         <Lock className="h-3 w-3" aria-hidden="true" />
                         Locked
@@ -422,7 +422,7 @@ export function AnalyticsTable({
                         type="button"
                         onClick={() => onEdit(l)}
                         aria-label={`Edit ${l.title}`}
-                        className="rounded-lg p-2 text-muted transition hover:bg-surface-raised hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                        className="rounded-lg p-2 text-muted transition hover:bg-surface-raised hover:text-accent-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
@@ -430,7 +430,7 @@ export function AnalyticsTable({
                         type="button"
                         onClick={() => onDelete(l)}
                         aria-label={`Delete ${l.title}`}
-                        className="rounded-lg p-2 text-muted transition hover:bg-surface-raised hover:text-rose-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
+                        className="rounded-lg p-2 text-muted transition hover:bg-surface-raised hover:text-rose-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -454,7 +454,7 @@ export function AnalyticsTable({
 
           {listings.length > 0 && (
             <tfoot>
-              <tr className="border-t border-surface-border bg-canvas/40">
+              <tr className="border-t border-surface-border bg-canvas">
                 <td className="px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                   Total
                 </td>
@@ -464,7 +464,7 @@ export function AnalyticsTable({
                 <Cell className="font-semibold text-foreground">
                   {num(totals.clicks)}
                 </Cell>
-                <Cell className="font-semibold text-accent">
+                <Cell className="font-semibold text-accent-strong">
                   {percent(blendedCtr)}
                 </Cell>
                 <Cell className="text-muted-foreground">—</Cell>
@@ -474,10 +474,10 @@ export function AnalyticsTable({
                 <Cell className="border-l border-surface-border font-semibold text-foreground">
                   {num(totals.unitsSold)}
                 </Cell>
-                <Cell className="font-semibold text-vip">
+                <Cell className="font-semibold text-vip-strong">
                   {formatCurrency(totals.revenue, { cents: true })}
                 </Cell>
-                <Cell className="font-semibold text-amber-300">
+                <Cell className="font-semibold text-amber-600">
                   −{formatCurrency(totals.commission, { cents: true })}
                 </Cell>
                 <td className="border-l border-surface-border" />
@@ -558,9 +558,9 @@ function Stat({
       <dd
         className={cn(
           "truncate font-mono text-xs font-medium tabular-nums",
-          tone === "accent" && "text-accent",
-          tone === "vip" && "text-vip",
-          tone === "amber" && "text-amber-300",
+          tone === "accent" && "text-accent-strong",
+          tone === "vip" && "text-vip-strong",
+          tone === "amber" && "text-amber-600",
           tone === "default" && "text-foreground",
         )}
       >

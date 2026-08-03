@@ -55,7 +55,7 @@ export function ModerationPanel({
   return (
     <section
       className={cn(
-        "flex flex-col rounded-2xl border border-surface-border bg-surface",
+        "flex flex-col rounded-2xl border border-surface-border bg-surface shadow-card",
         className,
       )}
       aria-labelledby="moderation-heading"
@@ -82,7 +82,7 @@ export function ModerationPanel({
                 )}
               >
                 <Icon
-                  className={cn("h-4 w-4", active && "text-accent")}
+                  className={cn("h-4 w-4", active && "text-accent-strong")}
                   aria-hidden="true"
                 />
                 {label}
@@ -133,12 +133,12 @@ export function ModerationPanel({
         <div className="flex flex-col gap-5 p-5">
           <div className="flex items-start gap-3 rounded-xl border border-rose-500/25 bg-rose-500/[0.06] p-4">
             <TriangleAlert
-              className="mt-0.5 h-5 w-5 shrink-0 text-rose-300"
+              className="mt-0.5 h-5 w-5 shrink-0 text-rose-600"
               aria-hidden="true"
             />
             <div className="min-w-0">
               <p className="text-sm font-medium">
-                Remove <span className="text-rose-200">{deleting?.title}</span>?
+                Remove <span className="text-rose-700">{deleting?.title}</span>?
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 The listing is pulled from search immediately and{" "}
@@ -158,7 +158,7 @@ export function ModerationPanel({
                 if (deleting) onDeleteListing(deleting.id);
                 setDeleting(null);
               }}
-              className="bg-gradient-to-r from-rose-500 to-rose-400 text-canvas shadow-none hover:from-rose-400 hover:to-rose-300 focus-visible:outline-rose-400"
+              className="bg-gradient-to-r from-rose-600 to-rose-500 text-white shadow-none hover:from-rose-500 hover:to-rose-400 focus-visible:outline-rose-400"
             >
               Delete listing
             </Button>
@@ -210,13 +210,13 @@ function UsersTable({
             </p>
 
             {u.flagReason && (
-              <p className="flex items-start gap-1.5 text-[11px] text-amber-300/80">
+              <p className="flex items-start gap-1.5 text-[11px] text-amber-600/80">
                 <TriangleAlert className="mt-px h-3 w-3 shrink-0" aria-hidden="true" />
                 {u.flagReason}
               </p>
             )}
 
-            <dl className="grid grid-cols-3 gap-3 rounded-xl border border-surface-border bg-canvas/40 p-3">
+            <dl className="grid grid-cols-3 gap-3 rounded-xl border border-surface-border bg-canvas p-3">
               <div>
                 <dt className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
                   Joined
@@ -237,7 +237,7 @@ function UsersTable({
                 <dt className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
                   Cashback
                 </dt>
-                <dd className="font-mono text-xs tabular-nums text-vip">
+                <dd className="font-mono text-xs tabular-nums text-vip-strong">
                   {formatCurrency(u.cashbackEarned)}
                 </dd>
               </div>
@@ -309,7 +309,7 @@ function UsersTable({
                 </div>
                 <p className="truncate text-xs text-muted-foreground">{u.email}</p>
                 {u.flagReason && (
-                  <p className="mt-1 flex items-start gap-1.5 text-[11px] text-amber-300/80">
+                  <p className="mt-1 flex items-start gap-1.5 text-[11px] text-amber-600/80">
                     <TriangleAlert
                       className="mt-px h-3 w-3 shrink-0"
                       aria-hidden="true"
@@ -325,7 +325,7 @@ function UsersTable({
               <td className="px-5 py-3.5 text-right font-mono tabular-nums text-muted">
                 {formatCurrency(u.lifetimeSpend, { cents: true })}
               </td>
-              <td className="px-5 py-3.5 text-right font-mono tabular-nums text-vip">
+              <td className="px-5 py-3.5 text-right font-mono tabular-nums text-vip-strong">
                 {formatCurrency(u.cashbackEarned, { cents: true })}
               </td>
 
@@ -367,8 +367,8 @@ function SuspendButton({
       className={cn(
         "touch-target inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider transition",
         suspended
-          ? "border-vip/30 text-vip hover:bg-vip/10"
-          : "border-surface-border text-muted hover:border-rose-500/40 hover:text-rose-300",
+          ? "border-vip/30 text-vip-strong hover:bg-vip/10"
+          : "border-surface-border text-muted hover:border-rose-500/40 hover:text-rose-600",
       )}
     >
       {suspended ? (
@@ -465,7 +465,7 @@ function FlaggedList({
                   size="sm"
                   onClick={() => onRequestDelete(l)}
                   leftIcon={<Trash2 className="h-3.5 w-3.5" />}
-                  className="bg-gradient-to-r from-rose-500 to-rose-400 text-canvas shadow-none hover:from-rose-400 hover:to-rose-300 focus-visible:outline-rose-400"
+                  className="bg-gradient-to-r from-rose-600 to-rose-500 text-white shadow-none hover:from-rose-500 hover:to-rose-400 focus-visible:outline-rose-400"
                 >
                   Delete
                 </Button>

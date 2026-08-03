@@ -10,43 +10,57 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Background Canvas — Deep Void
+        // Background Canvas — subtle slate neutral
         canvas: {
-          DEFAULT: "#05070A",
-          soft: "#080B10",
+          DEFAULT: "#F8FAFC",
+          soft: "#FFFFFF",
         },
-        // Surface / Card — Elevated Slate
+        // Surface / Card — clean white on the slate canvas
         surface: {
-          DEFAULT: "#0F172A",
-          raised: "#152036",
-          border: "#1E293B",
+          DEFAULT: "#FFFFFF",
+          raised: "#F1F5F9",
+          border: "#E2E8F0",
         },
-        // Primary Accent — Electric Cyan
+        /**
+         * Primary Accent — Emerald.
+         * `DEFAULT` is the brand fill (buttons, tints, rings, icons); `strong`
+         * is the darker tone used wherever emerald has to carry text on a light
+         * surface, where #10B981 sits well below the 4.5:1 contrast floor.
+         */
         accent: {
-          DEFAULT: "#38BDF8",
-          hover: "#0EA5E9",
-          muted: "#0C4A6E",
+          DEFAULT: "#10B981",
+          hover: "#059669",
+          strong: "#047857",
+          muted: "#D1FAE5",
+          soft: "#ECFDF5",
         },
-        // Success / VIP Accent — Emerald Green
+        // Success / VIP / Cashback — the same emerald family
         vip: {
           DEFAULT: "#10B981",
           hover: "#059669",
-          muted: "#064E3B",
+          strong: "#047857",
+          muted: "#D1FAE5",
         },
-        // Condition tags
+        // Secondary / typography — Deep Slate Navy
+        navy: {
+          DEFAULT: "#0F172A",
+          soft: "#1E293B",
+          muted: "#334155",
+        },
+        // Condition tags — emerald, navy, and teal keep the three grades apart
         condition: {
-          openbox: "#10B981", // Open-Box Excellent — Emerald
-          refurbished: "#38BDF8", // Certified Refurbished — Sky Blue
-          likenew: "#2DD4BF", // Like New — Teal
+          openbox: "#047857", // Open-Box Excellent — Emerald
+          refurbished: "#1E293B", // Certified Refurbished — Slate Navy
+          likenew: "#0F766E", // Like New — Teal
         },
         // Semantic aliases wired to CSS variables
         background: "var(--background)",
         foreground: "var(--foreground)",
         muted: {
-          DEFAULT: "#94A3B8",
+          DEFAULT: "#475569",
           foreground: "#64748B",
         },
-        border: "#1E293B",
+        border: "#E2E8F0",
       },
       fontFamily: {
         heading: ["var(--font-space-grotesk)", "system-ui", "sans-serif"],
@@ -54,12 +68,17 @@ const config: Config = {
         mono: ["var(--font-jetbrains-mono)", "ui-monospace", "monospace"],
       },
       boxShadow: {
-        glow: "0 0 24px -4px rgba(56, 189, 248, 0.35)",
-        "glow-vip": "0 0 24px -4px rgba(16, 185, 129, 0.35)",
-        card: "0 1px 2px 0 rgba(0, 0, 0, 0.6), 0 8px 24px -12px rgba(0, 0, 0, 0.9)",
+        // Soft elevation rather than neon bloom — the light theme reads depth
+        // from a tinted slate shadow, with a faint emerald cast on CTAs.
+        glow: "0 1px 2px 0 rgba(15, 23, 42, 0.06), 0 8px 20px -8px rgba(16, 185, 129, 0.45)",
+        "glow-vip":
+          "0 1px 2px 0 rgba(15, 23, 42, 0.06), 0 8px 20px -8px rgba(16, 185, 129, 0.45)",
+        card: "0 1px 2px 0 rgba(15, 23, 42, 0.04), 0 12px 32px -16px rgba(15, 23, 42, 0.18)",
+        elevated:
+          "0 2px 4px -1px rgba(15, 23, 42, 0.06), 0 20px 48px -24px rgba(15, 23, 42, 0.28)",
       },
       backgroundImage: {
-        "accent-gradient": "linear-gradient(135deg, #38BDF8 0%, #10B981 100%)",
+        "accent-gradient": "linear-gradient(135deg, #10B981 0%, #047857 100%)",
       },
       borderRadius: {
         xl: "0.875rem",

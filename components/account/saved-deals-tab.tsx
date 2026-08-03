@@ -111,7 +111,7 @@ export function SavedDealsTab({
                           })
                         }
                         aria-label={`Target price for ${product.brand} ${product.model}`}
-                        className="h-8 w-24 rounded-lg border border-surface-border bg-canvas/60 pl-5 pr-2 font-mono text-xs tabular-nums text-foreground focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/40"
+                        className="h-8 w-24 rounded-lg border border-surface-border bg-canvas pl-5 pr-2 font-mono text-xs tabular-nums text-foreground focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/40"
                       />
                     </span>
                   </label>
@@ -119,7 +119,7 @@ export function SavedDealsTab({
                   <p
                     className={cn(
                       "text-[11px]",
-                      hit ? "text-vip" : "text-muted-foreground",
+                      hit ? "text-vip-strong" : "text-muted-foreground",
                     )}
                   >
                     {hit
@@ -158,7 +158,7 @@ export function SavedDealsTab({
                     }
                     className={cn(
                       "rounded-lg p-2",
-                      alertsOn ? "text-vip" : "text-muted-foreground",
+                      alertsOn ? "text-vip-strong" : "text-muted-foreground",
                     )}
                   >
                     {alertsOn ? (
@@ -176,7 +176,7 @@ export function SavedDealsTab({
                     target="_blank"
                     rel="nofollow sponsored noopener noreferrer"
                     aria-label={`View ${product.brand} ${product.model} deal`}
-                    className="rounded-lg p-2 text-muted transition hover:bg-surface-raised hover:text-accent"
+                    className="rounded-lg p-2 text-muted transition hover:bg-surface-raised hover:text-accent-strong"
                   >
                     <ExternalLink className="h-4 w-4" />
                   </a>
@@ -185,7 +185,7 @@ export function SavedDealsTab({
                     type="button"
                     onClick={() => onRemove(deal.productId)}
                     aria-label={`Remove ${product.brand} ${product.model} from saved deals`}
-                    className="rounded-lg p-2 text-muted transition hover:bg-surface-raised hover:text-rose-300"
+                    className="rounded-lg p-2 text-muted transition hover:bg-surface-raised hover:text-rose-600"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>

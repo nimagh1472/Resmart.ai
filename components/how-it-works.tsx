@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { motion } from "framer-motion";
 import { Radar, Scale, Wallet } from "lucide-react";
@@ -36,7 +36,7 @@ export function HowItWorks() {
     >
       <div className="px-gutter mx-auto max-w-6xl">
         <div className="mx-auto mb-14 flex max-w-2xl flex-col items-center gap-3 text-center">
-          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">
+          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent-strong">
             How ReSmart Works
           </span>
           <h2 className="text-balance text-2xl font-bold sm:text-3xl lg:text-4xl">
@@ -71,13 +71,13 @@ export function HowItWorks() {
                 <step.icon
                   className={cn(
                     "h-6 w-6",
-                    step.tone === "vip" ? "text-vip" : "text-accent",
+                    step.tone === "vip" ? "text-vip-strong" : "text-accent-strong",
                   )}
                   aria-hidden="true"
                 />
                 <span
                   className={cn(
-                    "absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full font-mono text-[11px] font-bold text-canvas",
+                    "absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full font-mono text-[11px] font-bold text-white",
                     step.tone === "vip" ? "bg-vip" : "bg-accent",
                   )}
                 >

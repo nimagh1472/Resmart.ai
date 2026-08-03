@@ -51,13 +51,13 @@ export function LogoMark({
     >
       <defs>
         <linearGradient id={ring} x1="4" y1="4" x2="28" y2="28">
-          <stop offset="0%" stopColor="#38BDF8" />
-          <stop offset="100%" stopColor="#10B981" />
+          <stop offset="0%" stopColor="#10B981" />
+          <stop offset="100%" stopColor="#0F172A" />
         </linearGradient>
         <radialGradient id={core}>
-          <stop offset="0%" stopColor="#E0F2FE" />
-          <stop offset="55%" stopColor="#38BDF8" />
-          <stop offset="100%" stopColor="#0EA5E9" />
+          <stop offset="0%" stopColor="#D1FAE5" />
+          <stop offset="55%" stopColor="#10B981" />
+          <stop offset="100%" stopColor="#047857" />
         </radialGradient>
         <filter id={glow} x="-60%" y="-60%" width="220%" height="220%">
           <feGaussianBlur stdDeviation="1.6" result="blur" />
@@ -75,7 +75,7 @@ export function LogoMark({
         r="13.25"
         stroke={`url(#${ring})`}
         strokeWidth="1.5"
-        opacity="0.85"
+        opacity="0.9"
       />
 
       {/* Iris — segmented aperture, drifting in brightness */}
@@ -101,7 +101,7 @@ export function LogoMark({
       />
 
       {/* Specular highlight */}
-      <circle cx="14.5" cy="14.5" r="0.85" fill="#F0F9FF" opacity="0.9" />
+      <circle cx="14.5" cy="14.5" r="0.85" fill="#ECFDF5" opacity="0.9" />
     </svg>
   );
 }
@@ -141,7 +141,7 @@ export function Logo({
       </span>
       <span
         className={cn(
-          "rounded-md bg-accent font-mono font-bold uppercase leading-none tracking-widest text-canvas shadow-glow",
+          "rounded-md bg-accent font-mono font-bold uppercase leading-none tracking-widest text-white shadow-glow",
           BADGE_SIZE[size],
         )}
       >

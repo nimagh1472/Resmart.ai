@@ -50,7 +50,7 @@ export function SystemControls({
   return (
     <section
       className={cn(
-        "flex flex-col gap-5 rounded-2xl border border-surface-border bg-surface p-5",
+        "flex flex-col gap-5 rounded-2xl border border-surface-border bg-surface shadow-card p-5",
         className,
       )}
       aria-labelledby="controls-heading"
@@ -58,7 +58,7 @@ export function SystemControls({
       <div className="flex items-center gap-2">
         <span className="rounded-lg bg-accent/10 p-2 ring-1 ring-inset ring-accent/20">
           <SlidersHorizontal
-            className="h-4 w-4 text-accent"
+            className="h-4 w-4 text-accent-strong"
             aria-hidden="true"
           />
         </span>
@@ -91,7 +91,7 @@ export function SystemControls({
             step="0.01"
             value={draft.vipFee}
             onChange={(e) => patch({ vipFee: Number(e.target.value) })}
-            className="h-11 w-full rounded-xl border border-surface-border bg-canvas/60 pl-7 pr-16 font-mono text-sm tabular-nums text-foreground focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/40"
+            className="h-11 w-full rounded-xl border border-surface-border bg-canvas pl-7 pr-16 font-mono text-sm tabular-nums text-foreground focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/40"
           />
           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 font-mono text-xs text-muted-foreground">
             / month
@@ -124,7 +124,7 @@ export function SystemControls({
       />
 
       {/* Projected impact ------------------------------------------ */}
-      <div className="flex flex-col gap-2 rounded-xl border border-surface-border bg-canvas/40 p-3.5">
+      <div className="flex flex-col gap-2 rounded-xl border border-surface-border bg-canvas p-3.5">
         <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
           Projected monthly impact
         </p>
@@ -139,7 +139,7 @@ export function SystemControls({
               <span
                 className={cn(
                   "font-mono text-lg font-semibold tabular-nums",
-                  impact.net >= 0 ? "text-vip" : "text-rose-300",
+                  impact.net >= 0 ? "text-vip-strong" : "text-rose-600",
                 )}
               >
                 {impact.net >= 0 ? "+" : "−"}
@@ -159,7 +159,7 @@ export function SystemControls({
       </div>
 
       {dirty && draft.cashbackRate > draft.commissionRate && (
-        <p className="flex items-start gap-2 rounded-xl border border-rose-500/25 bg-rose-500/[0.06] px-3 py-2 text-xs text-rose-200">
+        <p className="flex items-start gap-2 rounded-xl border border-rose-500/25 bg-rose-500/[0.06] px-3 py-2 text-xs text-rose-700">
           <TriangleAlert
             className="mt-px h-3.5 w-3.5 shrink-0"
             aria-hidden="true"
@@ -192,7 +192,7 @@ export function SystemControls({
         aria-live="polite"
         className={cn(
           "text-center text-xs transition-opacity",
-          saved && !dirty ? "text-vip opacity-100" : "opacity-0",
+          saved && !dirty ? "text-vip-strong opacity-100" : "opacity-0",
         )}
       >
         Settings saved and applied platform-wide.
@@ -231,7 +231,7 @@ function PercentSlider({
         <span
           className={cn(
             "font-mono text-lg font-semibold tabular-nums",
-            tone === "vip" ? "text-vip" : "text-accent",
+            tone === "vip" ? "text-vip-strong" : "text-accent-strong",
           )}
         >
           {pct(value)}
@@ -272,8 +272,8 @@ function ImpactRow({ label, value }: { label: string; value: number }) {
           zero
             ? "text-muted-foreground"
             : value > 0
-              ? "text-vip"
-              : "text-rose-300",
+              ? "text-vip-strong"
+              : "text-rose-600",
         )}
       >
         {zero ? "—" : `${value > 0 ? "+" : "−"}${formatCurrency(Math.abs(value))}`}

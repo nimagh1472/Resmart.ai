@@ -9,6 +9,12 @@ export {
   type ButtonSize,
 } from "./button-styles";
 export { Switch, type SwitchProps } from "./switch";
+export {
+  ToastProvider,
+  useToast,
+  type Toast,
+  type ToastTone,
+} from "./toast";
 export { Sparkline, type SparklineProps } from "./sparkline";
 export { Tooltip, type TooltipProps } from "./tooltip";
 export {

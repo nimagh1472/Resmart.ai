@@ -24,7 +24,7 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <header className="pt-safe sticky top-0 z-40 border-b border-surface-border bg-canvas/80 backdrop-blur-xl">
+    <header className="pt-safe sticky top-0 z-40 border-b border-surface-border bg-surface/85 backdrop-blur-xl">
       <nav
         aria-label="Main"
         className="px-gutter mx-auto flex h-16 max-w-7xl items-center gap-3 sm:gap-4"
@@ -37,8 +37,9 @@ export function Navbar() {
         </Link>
 
         <ul className="ml-4 hidden items-center gap-1 lg:flex">
+          {/* Keyed on label, not href — the VIP entry has no route. */}
           {NAV_ITEMS.map((item) => (
-            <li key={item.href}>
+            <li key={item.label}>
               <NavLink item={item} />
             </li>
           ))}
@@ -83,7 +84,7 @@ export function Navbar() {
           >
             <ul className="flex flex-col gap-1 px-4 py-3">
               {NAV_ITEMS.map((item) => (
-                <li key={item.href}>
+                <li key={item.label}>
                   <NavLink
                     item={item}
                     className="block w-full"
@@ -119,7 +120,7 @@ function NavLink({
     "inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm transition",
     "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
     item.vip
-      ? "font-medium text-vip hover:bg-vip/10"
+      ? "font-medium text-vip-strong hover:bg-vip/10"
       : "text-muted hover:bg-surface hover:text-foreground",
     className,
   );

@@ -32,7 +32,7 @@ export function VisionHistoryTab({
         return (
           <li
             key={scan.id}
-            className="flex flex-col overflow-hidden rounded-2xl border border-surface-border bg-surface transition-colors hover:border-accent/40"
+            className="flex flex-col overflow-hidden rounded-2xl border border-surface-border bg-surface shadow-card transition-colors hover:border-accent/40"
           >
             {/* Thumbnail placeholder — original uploads aren't retained. */}
             <div className="relative flex aspect-[16/10] items-center justify-center border-b border-surface-border bg-gradient-to-br from-surface to-canvas">
@@ -60,8 +60,8 @@ export function VisionHistoryTab({
                 className={cn(
                   "absolute right-3 top-3 rounded-lg border p-1.5 backdrop-blur transition",
                   scan.saved
-                    ? "border-vip/35 bg-vip/10 text-vip"
-                    : "border-surface-border bg-canvas/70 text-muted hover:text-foreground",
+                    ? "border-vip/35 bg-vip/10 text-vip-strong"
+                    : "border-surface-border bg-canvas text-muted hover:text-foreground",
                 )}
               >
                 {scan.saved ? (
@@ -71,7 +71,7 @@ export function VisionHistoryTab({
                 )}
               </button>
 
-              <span className="absolute bottom-3 left-3 max-w-[calc(100%-1.5rem)] truncate rounded-md bg-canvas/80 px-2 py-1 font-mono text-[10px] text-muted backdrop-blur">
+              <span className="absolute bottom-3 left-3 max-w-[calc(100%-1.5rem)] truncate rounded-md bg-surface/90 px-2 py-1 font-mono text-[10px] text-muted backdrop-blur">
                 {scan.sourceLabel}
               </span>
             </div>
@@ -96,7 +96,7 @@ export function VisionHistoryTab({
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-mono text-xs tabular-nums text-vip">
+                  <p className="font-mono text-xs tabular-nums text-vip-strong">
                     −{formatCurrency(savings)} ({pct}%)
                   </p>
                   <p className="font-mono text-[10px] text-muted-foreground">

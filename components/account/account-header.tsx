@@ -13,7 +13,7 @@ export function AccountHeader({ user }: { user: AccountUser }) {
         <div className="flex items-center gap-4">
           <span
             aria-hidden="true"
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-vip/30 bg-vip/10 font-heading text-lg font-bold text-vip shadow-glow-vip"
+            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-vip/30 bg-vip/10 font-heading text-lg font-bold text-vip-strong shadow-glow-vip"
           >
             {user.initials}
           </span>
@@ -23,7 +23,7 @@ export function AccountHeader({ user }: { user: AccountUser }) {
               <h1 className="truncate font-heading text-2xl font-bold">
                 {user.name}
               </h1>
-              <span className="inline-flex items-center gap-1 rounded-full border border-vip/35 bg-vip/10 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-vip shadow-glow-vip">
+              <span className="inline-flex items-center gap-1 rounded-full border border-vip/35 bg-vip/10 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-vip-strong shadow-glow-vip">
                 <Crown className="h-3 w-3" aria-hidden="true" />
                 VIP
               </span>
@@ -37,7 +37,7 @@ export function AccountHeader({ user }: { user: AccountUser }) {
           </div>
         </div>
 
-        <div className="shrink-0 rounded-xl border border-surface-border bg-canvas/40 px-4 py-3">
+        <div className="shrink-0 rounded-xl border border-surface-border bg-canvas px-4 py-3">
           <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             <CalendarClock className="h-3 w-3" aria-hidden="true" />
             Renews on

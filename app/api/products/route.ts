@@ -172,6 +172,7 @@ export async function GET(request: Request) {
 
 type ListingBody = {
   title?: unknown;
+  description?: unknown;
   condition?: unknown;
   msrp?: unknown;
   price?: unknown;
@@ -205,6 +206,13 @@ export async function POST(request: Request) {
 
   const title = typeof body.title === "string" ? body.title.trim() : "";
   if (!title) errors.push("title is required.");
+
+  // Optional prose — may be AI-drafted, so it's length-capped rather than free.
+  const description =
+    typeof body.description === "string" ? body.description.trim() : "";
+  if (description.length > 2000) {
+    errors.push("description must be 2000 characters or fewer.");
+  }
 
   const condition = typeof body.condition === "string" ? body.condition : "";
   if (!(condition in CONDITIONS_API)) {
@@ -259,6 +267,7 @@ export async function POST(request: Request) {
   const item = {
     id: `lst-${Date.now().toString(36)}`,
     title,
+    description: description || null,
     condition,
     conditionLabel: CONDITIONS_API[condition as CardCondition].label,
     warranty: CONDITIONS_API[condition as CardCondition].warranty,

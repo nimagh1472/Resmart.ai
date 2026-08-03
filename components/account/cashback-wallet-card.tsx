@@ -35,14 +35,14 @@ export function CashbackWalletCard({
   return (
     <section
       className={cn(
-        "flex flex-col gap-5 rounded-2xl border border-surface-border bg-surface p-5 sm:p-6",
+        "flex flex-col gap-5 rounded-2xl border border-surface-border bg-surface shadow-card p-5 sm:p-6",
         className,
       )}
       aria-labelledby="cashback-heading"
     >
       <div className="flex items-center gap-2">
         <span className="rounded-lg bg-vip/10 p-2 ring-1 ring-inset ring-vip/20">
-          <Wallet className="h-4 w-4 text-vip" aria-hidden="true" />
+          <Wallet className="h-4 w-4 text-vip-strong" aria-hidden="true" />
         </span>
         <h2 id="cashback-heading" className="font-heading text-sm font-semibold">
           Cashback Wallet
@@ -129,7 +129,7 @@ function Figure({
       <p
         className={cn(
           "font-mono text-2xl font-semibold tabular-nums",
-          tone === "vip" ? "text-vip" : "text-foreground",
+          tone === "vip" ? "text-vip-strong" : "text-foreground",
         )}
       >
         {value}
@@ -189,7 +189,7 @@ function PayoutModal({
       <div className="p-5">
         {phase === "form" && (
           <div className="flex flex-col gap-4">
-            <div className="rounded-xl border border-amber-400/25 bg-amber-400/[0.06] px-3 py-2 text-xs text-amber-300">
+            <div className="rounded-xl border border-amber-400/25 bg-amber-400/[0.06] px-3 py-2 text-xs text-amber-600">
               Demo flow — no funds move.
             </div>
 
@@ -208,7 +208,7 @@ function PayoutModal({
                   step="0.01"
                   value={amount}
                   onChange={(e) => setAmount(Number(e.target.value))}
-                  className="h-11 w-full rounded-xl border border-surface-border bg-canvas/60 pl-7 pr-3 font-mono text-sm tabular-nums text-foreground focus:border-vip/50 focus:outline-none focus:ring-1 focus:ring-vip/40"
+                  className="h-11 w-full rounded-xl border border-surface-border bg-canvas pl-7 pr-3 font-mono text-sm tabular-nums text-foreground focus:border-vip/50 focus:outline-none focus:ring-1 focus:ring-vip/40"
                 />
               </div>
               <span className="text-[11px] text-muted-foreground">
@@ -217,7 +217,7 @@ function PayoutModal({
               </span>
             </label>
 
-            <div className="flex items-center justify-between rounded-xl border border-surface-border bg-canvas/40 px-3.5 py-3">
+            <div className="flex items-center justify-between rounded-xl border border-surface-border bg-canvas px-3.5 py-3">
               <div className="flex items-center gap-2">
                 <Landmark className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                 <span className="text-sm">Chase •••• 4021</span>
@@ -240,7 +240,7 @@ function PayoutModal({
 
         {phase === "processing" && (
           <div className="flex flex-col items-center gap-3 py-12">
-            <Loader2 className="h-7 w-7 animate-spin text-vip" />
+            <Loader2 className="h-7 w-7 animate-spin text-vip-strong" />
             <p className="text-sm text-muted">Submitting transfer…</p>
           </div>
         )}
@@ -248,7 +248,7 @@ function PayoutModal({
         {phase === "done" && (
           <div className="flex flex-col items-center gap-4 py-8 text-center">
             <span className="rounded-2xl bg-vip/10 p-4 ring-1 ring-inset ring-vip/25">
-              <CheckCircle2 className="h-8 w-8 text-vip" />
+              <CheckCircle2 className="h-8 w-8 text-vip-strong" />
             </span>
             <div>
               <h3 className="font-heading text-lg font-semibold">

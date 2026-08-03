@@ -39,7 +39,7 @@ export function OfferComparison({
 }: OfferComparisonProps) {
   if (offers.length === 0) {
     return (
-      <section className={cn("rounded-2xl border border-surface-border bg-surface p-6", className)}>
+      <section className={cn("rounded-2xl border border-surface-border bg-surface shadow-card p-6", className)}>
         <h2 className="font-heading text-lg font-semibold">Seller offers</h2>
         <p className="mt-2 text-sm text-muted">
           No merchants are carrying this item right now. Save it and we&apos;ll
@@ -76,7 +76,7 @@ export function OfferComparison({
       </header>
 
       {/* Desktop: a real table, so the columns are comparable at a glance. */}
-      <div className="hidden overflow-hidden rounded-2xl border border-surface-border bg-surface lg:block">
+      <div className="hidden overflow-hidden rounded-2xl border border-surface-border bg-surface shadow-card lg:block">
         <table className="w-full border-collapse text-left">
           <caption className="sr-only">
             Merchant offers for {title}, best value first.
@@ -313,7 +313,7 @@ function PriceCell({
         {formatCurrency(offer.price)}
       </span>
       {off > 0 && (
-        <span className="font-mono text-[10px] uppercase tracking-wider text-vip">
+        <span className="font-mono text-[10px] uppercase tracking-wider text-vip-strong">
           {off}% off MSRP
         </span>
       )}
@@ -338,7 +338,7 @@ function CashbackCell({
         align === "right" ? "items-end" : "items-start",
       )}
     >
-      <span className="inline-flex items-center gap-1.5 font-mono text-sm font-semibold tabular-nums text-vip">
+      <span className="inline-flex items-center gap-1.5 font-mono text-sm font-semibold tabular-nums text-vip-strong">
         <Wallet className="h-3.5 w-3.5" aria-hidden="true" />+
         {formatCurrency(cashback, { cents: true })}
       </span>

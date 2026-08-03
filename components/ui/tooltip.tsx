@@ -47,7 +47,9 @@ export function Tooltip({
             exit={{ opacity: 0, scale: 0.96 }}
             transition={{ duration: 0.15 }}
             className={cn(
-              "pointer-events-none absolute left-1/2 z-30 w-max max-w-[15rem] -translate-x-1/2 rounded-lg border border-surface-border bg-canvas px-2.5 py-1.5 text-left text-xs font-normal normal-case tracking-normal text-muted shadow-card",
+              // Inverted on purpose: a navy bubble reads as an overlay against
+              // the white surfaces instead of dissolving into them.
+              "pointer-events-none absolute left-1/2 z-30 w-max max-w-[15rem] -translate-x-1/2 rounded-lg bg-navy px-2.5 py-1.5 text-left text-xs font-normal normal-case tracking-normal text-slate-100 shadow-elevated",
               side === "top" ? "bottom-full mb-2" : "top-full mt-2",
               className,
             )}

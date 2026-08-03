@@ -1,4 +1,5 @@
 import type { CardCondition } from "@/lib/catalog";
+import type { MerchantKyc } from "@/lib/kyc";
 
 /* ------------------------------------------------------------------ */
 /* Monetization constants                                              */
@@ -24,6 +25,14 @@ export type MerchantProfile = {
   /** ISO date the application was submitted. */
   submittedOn: string;
   reviewEtaHours: number;
+  /**
+   * Verification details captured during onboarding. Null until the merchant
+   * completes the KYC form — an account can hold inventory before then, but it
+   * can't be approved, so the dashboard keeps prompting for it.
+   */
+  kyc?: MerchantKyc | null;
+  /** Application id assigned by `POST /api/merchants` on submission. */
+  applicationId?: string;
 };
 
 export const MOCK_MERCHANT: MerchantProfile = {
@@ -31,7 +40,12 @@ export const MOCK_MERCHANT: MerchantProfile = {
   status: "pending",
   submittedOn: "2026-07-30",
   reviewEtaHours: 48,
+  kyc: null,
 };
+
+/** Approval is blocked until business verification has been submitted. */
+export const isVerificationSubmitted = (profile: MerchantProfile) =>
+  Boolean(profile.kyc);
 
 /** Listings only reach public search once the merchant is approved. */
 export const canPublish = (status: MerchantStatus) => status === "approved";
@@ -44,6 +58,8 @@ export type MerchantListing = {
   id: string;
   title: string;
   condition: CardCondition;
+  /** Customer-facing copy. Optional — the AI assistant can draft it. */
+  description?: string;
   /** Manufacturer's suggested price — the reference the discount is cut from. */
   msrp: number;
   /** The open-box price buyers pay. */

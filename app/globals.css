@@ -3,17 +3,20 @@
 @tailwind utilities;
 
 :root {
-  --background: #05070a;
-  --foreground: #e2e8f0;
-  --surface: #0f172a;
-  --surface-border: #1e293b;
-  --accent: #38bdf8;
+  /* Nordic Navy & Emerald — clean white surfaces on a slate-neutral canvas. */
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --surface: #ffffff;
+  --surface-border: #e2e8f0;
+  --accent: #10b981;
+  --accent-strong: #047857;
   --vip: #10b981;
+  --navy: #0f172a;
 }
 
 @layer base {
   html {
-    color-scheme: dark;
+    color-scheme: light;
     /* Belt-and-braces against a stray wide child causing page-level pan. */
     overflow-x: hidden;
     -webkit-text-size-adjust: 100%;
@@ -83,7 +86,8 @@
     margin-top: -0.4375rem;
     border-radius: 9999px;
     background: currentColor;
-    border: 2px solid #05070a;
+    border: 2px solid #ffffff;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.28);
     cursor: pointer;
   }
   input[type="range"]::-moz-range-thumb {
@@ -91,7 +95,8 @@
     width: 1.375rem;
     border-radius: 9999px;
     background: currentColor;
-    border: 2px solid #05070a;
+    border: 2px solid #ffffff;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.28);
     cursor: pointer;
   }
 }

@@ -29,10 +29,12 @@ export type CardCondition =
   | "like-new";
 
 /**
- * Brand colors are lightened from each retailer's official palette so they
- * stay legible on the Deep Void canvas. `logoSrc` is intentionally empty —
- * real retailer marks are licensed assets and must be supplied per-deployment;
- * until one is, the UI falls back to a monogram tile in the brand color.
+ * Brand colors are deepened from each retailer's official palette so the badge
+ * label stays readable as text on the white card surface — the published
+ * yellows and pastels sit far below 4.5:1 there. `logoSrc` is intentionally
+ * empty — real retailer marks are licensed assets and must be supplied
+ * per-deployment; until one is, the UI falls back to a monogram tile in the
+ * brand color.
  *
  * `home` is the storefront root, used as the affiliate destination for
  * comparison offers that have no deep link of their own.
@@ -43,34 +45,34 @@ export const RETAILERS: Record<
 > = {
   "best-buy": {
     label: "Best Buy",
-    color: "#FFE000",
+    color: "#1D4ED8",
     home: "https://www.bestbuy.com/",
   },
-  ebay: { label: "eBay", color: "#7CB9F2", home: "https://www.ebay.com/" },
+  ebay: { label: "eBay", color: "#B91C1C", home: "https://www.ebay.com/" },
   walmart: {
     label: "Walmart",
-    color: "#FFC220",
+    color: "#0369A1",
     home: "https://www.walmart.com/",
   },
   "amazon-warehouse": {
     label: "Amazon Warehouse",
-    color: "#FF9900",
+    color: "#B45309",
     home: "https://www.amazon.com/",
   },
   "back-market": {
     label: "Back Market",
-    color: "#5CE1B6",
+    color: "#0F766E",
     home: "https://www.backmarket.com/",
   },
-  newegg: { label: "Newegg", color: "#F97362", home: "https://www.newegg.com/" },
+  newegg: { label: "Newegg", color: "#C2410C", home: "https://www.newegg.com/" },
   gamestop: {
     label: "GameStop",
-    color: "#A78BFA",
+    color: "#6D28D9",
     home: "https://www.gamestop.com/",
   },
   adorama: {
     label: "Adorama",
-    color: "#F0ABFC",
+    color: "#A21CAF",
     home: "https://www.adorama.com/",
   },
 };

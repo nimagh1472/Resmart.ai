@@ -38,12 +38,12 @@ export function SubscriptionSection({ user }: { user: AccountUser }) {
 
   return (
     <section
-      className="flex flex-col gap-5 rounded-2xl border border-surface-border bg-surface p-5 sm:p-6"
+      className="flex flex-col gap-5 rounded-2xl border border-surface-border bg-surface shadow-card p-5 sm:p-6"
       aria-labelledby="subscription-heading"
     >
       <div className="flex items-center gap-2">
         <span className="rounded-lg bg-vip/10 p-2 ring-1 ring-inset ring-vip/20">
-          <CreditCard className="h-4 w-4 text-vip" aria-hidden="true" />
+          <CreditCard className="h-4 w-4 text-vip-strong" aria-hidden="true" />
         </span>
         <h2
           id="subscription-heading"
@@ -55,7 +55,7 @@ export function SubscriptionSection({ user }: { user: AccountUser }) {
 
       <div className="flex flex-col gap-4 rounded-xl border border-vip/25 bg-vip/[0.05] p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="font-heading font-semibold text-vip">ReSmart VIP</p>
+          <p className="font-heading font-semibold text-vip-strong">ReSmart VIP</p>
           <p className="text-xs text-muted-foreground">
             Renews {formatDate(user.renewsOn)} · cancel anytime
           </p>
@@ -101,7 +101,7 @@ export function SubscriptionSection({ user }: { user: AccountUser }) {
       {notice && (
         <p
           role="status"
-          className="flex items-start gap-2 rounded-xl border border-amber-400/25 bg-amber-400/[0.06] px-3 py-2 text-xs text-amber-300"
+          className="flex items-start gap-2 rounded-xl border border-amber-400/25 bg-amber-400/[0.06] px-3 py-2 text-xs text-amber-600"
         >
           <Info className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           {notice}

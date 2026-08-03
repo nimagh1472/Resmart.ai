@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
@@ -39,7 +39,7 @@ export function TrendingDeals({
     <section className="px-gutter mx-auto max-w-7xl py-16 sm:py-24">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-2">
-          <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-accent">
+          <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-accent-strong">
             <Flame className="h-3.5 w-3.5" aria-hidden="true" />
             Trending now
           </span>
@@ -69,7 +69,7 @@ export function TrendingDeals({
                 "relative rounded-full border px-3.5 py-1.5 text-xs transition",
                 "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
                 active
-                  ? "border-accent/50 text-accent"
+                  ? "border-accent/50 text-accent-strong"
                   : "border-surface-border text-muted hover:border-accent/30 hover:text-foreground",
               )}
             >

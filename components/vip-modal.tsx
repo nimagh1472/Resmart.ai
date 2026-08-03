@@ -128,7 +128,7 @@ function VipModal({ open, onClose }: { open: boolean; onClose: () => void }) {
               className="flex flex-col gap-6"
             >
               {/* Value calculator */}
-              <div className="rounded-2xl border border-surface-border bg-canvas/40 p-4">
+              <div className="rounded-2xl border border-surface-border bg-canvas p-4">
                 <div className="mb-4 flex items-center justify-between gap-2">
                   <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                     Does it pay for itself?
@@ -188,7 +188,7 @@ function VipModal({ open, onClose }: { open: boolean; onClose: () => void }) {
                   {paysForItself ? (
                     <>
                       One {formatCurrency(avgPrice)} open-box buy returns{" "}
-                      <span className="font-mono text-vip">
+                      <span className="font-mono text-vip-strong">
                         {formatCurrency(avgPrice * CASHBACK_RATE, {
                           cents: true,
                         })}
@@ -198,7 +198,7 @@ function VipModal({ open, onClose }: { open: boolean; onClose: () => void }) {
                   ) : (
                     <>
                       Spend{" "}
-                      <span className="font-mono text-accent">
+                      <span className="font-mono text-accent-strong">
                         {formatCurrency(Math.ceil(VIP_PRICE / CASHBACK_RATE))}
                       </span>{" "}
                       a month to break even on the subscription.
@@ -212,7 +212,7 @@ function VipModal({ open, onClose }: { open: boolean; onClose: () => void }) {
                 {FEATURES.map(({ icon: Icon, title, description }) => (
                   <li key={title} className="flex items-start gap-3">
                     <span className="mt-0.5 rounded-lg bg-vip/10 p-2 ring-1 ring-inset ring-vip/20">
-                      <Icon className="h-4 w-4 text-vip" aria-hidden="true" />
+                      <Icon className="h-4 w-4 text-vip-strong" aria-hidden="true" />
                     </span>
                     <div>
                       <p className="text-sm font-medium">{title}</p>
@@ -252,12 +252,12 @@ function VipModal({ open, onClose }: { open: boolean; onClose: () => void }) {
               transition={{ duration: 0.2 }}
               className="flex flex-col gap-5"
             >
-              <div className="rounded-xl border border-amber-400/25 bg-amber-400/[0.06] px-3 py-2 text-xs text-amber-300">
+              <div className="rounded-xl border border-amber-400/25 bg-amber-400/[0.06] px-3 py-2 text-xs text-amber-600">
                 Demo checkout — this is a simulated Stripe flow. No card is
                 charged and nothing is transmitted.
               </div>
 
-              <div className="flex items-center justify-between rounded-xl border border-surface-border bg-canvas/40 p-4">
+              <div className="flex items-center justify-between rounded-xl border border-surface-border bg-canvas p-4">
                 <div>
                   <p className="font-heading font-medium">ReSmart VIP</p>
                   <p className="text-xs text-muted-foreground">
@@ -307,7 +307,7 @@ function VipModal({ open, onClose }: { open: boolean; onClose: () => void }) {
               exit={{ opacity: 0 }}
               className="flex flex-col items-center gap-4 py-16"
             >
-              <Loader2 className="h-8 w-8 animate-spin text-vip" />
+              <Loader2 className="h-8 w-8 animate-spin text-vip-strong" />
               <p className="text-sm text-muted">Confirming with Stripe…</p>
               <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 Simulated · no charge
@@ -325,7 +325,7 @@ function VipModal({ open, onClose }: { open: boolean; onClose: () => void }) {
               className="flex flex-col items-center gap-5 py-8 text-center"
             >
               <span className="rounded-2xl bg-vip/10 p-4 ring-1 ring-inset ring-vip/25">
-                <CheckCircle2 className="h-9 w-9 text-vip" />
+                <CheckCircle2 className="h-9 w-9 text-vip-strong" />
               </span>
 
               <div>
@@ -341,7 +341,7 @@ function VipModal({ open, onClose }: { open: boolean; onClose: () => void }) {
                 <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                   Projected first-month cashback
                 </p>
-                <p className="mt-1 font-mono text-3xl font-semibold tabular-nums text-vip">
+                <p className="mt-1 font-mono text-3xl font-semibold tabular-nums text-vip-strong">
                   {formatCurrency(monthlyCashback, { cents: true })}
                 </p>
               </div>
@@ -414,7 +414,7 @@ function MathStep({
       <p
         className={cn(
           "mt-0.5 font-mono text-sm font-semibold tabular-nums",
-          tone === "vip" && "text-vip",
+          tone === "vip" && "text-vip-strong",
           tone === "muted" && "text-muted-foreground",
           tone === "default" && "text-foreground",
         )}
@@ -499,7 +499,7 @@ function Field({
         {...props}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-11 w-full rounded-xl border border-surface-border bg-canvas/60 px-3 font-mono text-sm tabular-nums text-foreground placeholder:text-muted-foreground focus:border-vip/50 focus:outline-none focus:ring-1 focus:ring-vip/40"
+        className="h-11 w-full rounded-xl border border-surface-border bg-canvas px-3 font-mono text-sm tabular-nums text-foreground placeholder:text-muted-foreground focus:border-vip/50 focus:outline-none focus:ring-1 focus:ring-vip/40"
       />
     </label>
   );

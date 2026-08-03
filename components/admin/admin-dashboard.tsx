@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Lock, PanelRight } from "lucide-react";
+import { CheckCircle2, ClipboardList, Lock, PanelRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SideDrawer } from "@/components/ui/side-drawer";
+import { ToastProvider } from "@/components/ui/toast";
 import { useIsDesktop } from "@/lib/use-media-query";
+import { cn } from "@/lib/utils";
 import { FinancialOverview } from "@/components/admin/financial-overview";
 import { ApprovalQueue } from "@/components/admin/approval-queue";
+import { KycApplications } from "@/components/admin/kyc-applications";
 import { SystemControls } from "@/components/admin/system-controls";
 import { ModerationPanel } from "@/components/admin/moderation-panel";
 import {
@@ -23,7 +26,28 @@ import {
 
 type Decision = { id: string; name: string; outcome: "approved" | "rejected" };
 
+/**
+ * Two review surfaces, one column: KYC applications are the live queue backed
+ * by `/api/merchants`, while the document queue is the per-document checklist.
+ */
+const TABS = [
+  { id: "kyc", label: "Merchant KYC Applications", icon: ShieldCheck },
+  { id: "documents", label: "Document Queue", icon: ClipboardList },
+] as const;
+
+type TabId = (typeof TABS)[number]["id"];
+
 export function AdminDashboard() {
+  return (
+    // Approve/reject feedback is a toast, so the provider has to sit above the
+    // whole console rather than inside the queue component.
+    <ToastProvider>
+      <AdminConsole />
+    </ToastProvider>
+  );
+}
+
+function AdminConsole() {
   const [settings, setSettings] = useState<PlatformSettings>(DEFAULT_SETTINGS);
   const [applications, setApplications] =
     useState<MerchantApplication[]>(MOCK_APPLICATIONS);
@@ -31,6 +55,7 @@ export function AdminDashboard() {
   const [flagged, setFlagged] = useState<FlaggedListing[]>(MOCK_FLAGGED);
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [tab, setTab] = useState<TabId>("kyc");
 
   const isDesktop = useIsDesktop();
 
@@ -53,7 +78,7 @@ export function AdminDashboard() {
       />
 
       {decisions.length > 0 && (
-        <section className="flex flex-col gap-2 rounded-2xl border border-surface-border bg-surface p-5">
+        <section className="flex flex-col gap-2 rounded-2xl border border-surface-border bg-surface shadow-card p-5">
           <h2 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             Recent decisions
           </h2>
@@ -67,8 +92,8 @@ export function AdminDashboard() {
                 <span
                   className={
                     d.outcome === "approved"
-                      ? "font-mono text-[10px] uppercase tracking-wider text-vip"
-                      : "font-mono text-[10px] uppercase tracking-wider text-rose-300"
+                      ? "font-mono text-[10px] uppercase tracking-wider text-vip-strong"
+                      : "font-mono text-[10px] uppercase tracking-wider text-rose-600"
                   }
                 >
                   {d.outcome}
@@ -77,7 +102,7 @@ export function AdminDashboard() {
             ))}
           </ul>
           <p className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <CheckCircle2 className="h-3 w-3 text-vip" aria-hidden="true" />
+            <CheckCircle2 className="h-3 w-3 text-vip-strong" aria-hidden="true" />
             Merchants are notified automatically.
           </p>
         </section>
@@ -92,7 +117,7 @@ export function AdminDashboard() {
           Super Admin
         </h1>
         <p className="text-sm text-muted-foreground">
-          Platform financials, merchant approvals, pricing controls, and
+          Platform financials, merchant KYC verification, pricing controls, and
           moderation.
         </p>
       </div>
@@ -112,14 +137,57 @@ export function AdminDashboard() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_23rem] xl:grid-cols-[minmax(0,1fr)_24rem]">
         <div className="flex min-w-0 flex-col gap-6">
-          <ApprovalQueue
-            applications={applications}
-            onApprove={(id) => decide(id, "approved")}
-            onReject={(id) => decide(id, "rejected")}
-            onRequestDocs={() => {
-              /* Wired to the merchant notification service. */
-            }}
-          />
+          {/* Review tabs -------------------------------------------- */}
+          <div
+            role="tablist"
+            aria-label="Merchant review"
+            className="flex w-full gap-1 rounded-2xl border border-surface-border bg-surface p-1 shadow-card"
+          >
+            {TABS.map(({ id, label, icon: Icon }) => {
+              const active = tab === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  id={`tab-${id}`}
+                  aria-selected={active}
+                  aria-controls={`panel-${id}`}
+                  onClick={() => setTab(id)}
+                  className={cn(
+                    "flex min-h-touch-sm flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-medium transition sm:text-sm",
+                    "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong",
+                    active
+                      ? "bg-accent-soft text-accent-strong ring-1 ring-inset ring-accent/30"
+                      : "text-muted hover:bg-surface-raised hover:text-navy",
+                  )}
+                >
+                  <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span className="truncate">{label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div
+            role="tabpanel"
+            id={`panel-${tab}`}
+            aria-labelledby={`tab-${tab}`}
+            className="min-w-0"
+          >
+            {tab === "kyc" ? (
+              <KycApplications />
+            ) : (
+              <ApprovalQueue
+                applications={applications}
+                onApprove={(id) => decide(id, "approved")}
+                onReject={(id) => decide(id, "rejected")}
+                onRequestDocs={() => {
+                  /* Wired to the merchant notification service. */
+                }}
+              />
+            )}
+          </div>
 
           <ModerationPanel
             users={users}

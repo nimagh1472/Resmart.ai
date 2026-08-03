@@ -92,7 +92,7 @@ export function FinancialOverview({
         </span>
       </div>
 
-      <div className="grid gap-px overflow-hidden rounded-2xl border border-surface-border bg-surface-border sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-px overflow-hidden rounded-2xl border border-surface-border bg-surface shadow-card-border sm:grid-cols-2 xl:grid-cols-5">
         {cards.map((c) => (
           <div key={c.label} className="flex flex-col gap-1.5 bg-surface px-4 py-4">
             <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -103,9 +103,9 @@ export function FinancialOverview({
               title={c.exact}
               className={cn(
                 "font-mono text-2xl font-semibold tabular-nums",
-                c.tone === "accent" && "text-accent",
-                c.tone === "vip" && "text-vip",
-                c.tone === "amber" && "text-amber-300",
+                c.tone === "accent" && "text-accent-strong",
+                c.tone === "vip" && "text-vip-strong",
+                c.tone === "amber" && "text-amber-600",
                 c.tone === "default" && "text-foreground",
               )}
             >
@@ -120,15 +120,15 @@ export function FinancialOverview({
       </div>
 
       {/* Net roll-up: the four inflows minus cashback. */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-surface-border bg-surface p-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-2xl border border-surface-border bg-surface shadow-card p-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs tabular-nums text-muted-foreground">
-          <span className="text-accent">{compact(f.salesCommission)}</span>
+          <span className="text-accent-strong">{compact(f.salesCommission)}</span>
           <span>+</span>
-          <span className="text-vip">{compact(f.vipRevenue)}</span>
+          <span className="text-vip-strong">{compact(f.vipRevenue)}</span>
           <span>+</span>
-          <span className="text-accent">{compact(financials.cpcAdRevenue)}</span>
+          <span className="text-accent-strong">{compact(financials.cpcAdRevenue)}</span>
           <span>−</span>
-          <span className="text-amber-300">{compact(f.cashbackPaidOut)}</span>
+          <span className="text-amber-600">{compact(f.cashbackPaidOut)}</span>
         </div>
         <div className="text-right">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -152,7 +152,7 @@ function Delta({ value, invert }: { value: number; invert?: boolean }) {
     <p
       className={cn(
         "flex items-center gap-0.5 font-mono text-[11px] tabular-nums",
-        good ? "text-vip" : "text-rose-300",
+        good ? "text-vip-strong" : "text-rose-600",
       )}
     >
       <Icon className="h-3 w-3" aria-hidden="true" />

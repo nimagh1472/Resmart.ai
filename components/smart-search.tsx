@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { ImageUp, Search } from "lucide-react";
@@ -27,7 +27,7 @@ export function SmartSearch({ className }: { className?: string }) {
     <div className={cn("flex w-full flex-col gap-4", className)}>
       <form
         onSubmit={submit}
-        className="flex flex-col gap-2 rounded-2xl border border-surface-border bg-surface p-2 shadow-card focus-within:border-accent/40 focus-within:shadow-glow sm:flex-row sm:items-center"
+        className="flex flex-col gap-2 rounded-2xl border border-surface-border bg-surface shadow-card p-2 shadow-card focus-within:border-accent/40 focus-within:shadow-glow sm:flex-row sm:items-center"
       >
         <div className="relative flex-1">
           <Search

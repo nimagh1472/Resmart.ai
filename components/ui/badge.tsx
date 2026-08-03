@@ -12,12 +12,14 @@ export type BadgeTone =
 export type BadgeSize = "sm" | "md";
 
 const TONES: Record<BadgeTone, string> = {
-  emerald: "bg-vip/10 text-vip ring-vip/25",
-  sky: "bg-accent/10 text-accent ring-accent/25",
+  emerald: "bg-accent-soft text-vip-strong ring-vip/30",
+  // Slate navy rather than a second green — keeps "refurbished" visually
+  // distinct from "open-box" now that the accent itself is emerald.
+  sky: "bg-navy/[0.06] text-navy ring-navy/15",
   teal: "bg-condition-likenew/10 text-condition-likenew ring-condition-likenew/25",
   slate: "bg-surface-raised text-muted ring-surface-border",
-  amber: "bg-amber-400/10 text-amber-300 ring-amber-400/25",
-  rose: "bg-rose-500/10 text-rose-300 ring-rose-500/25",
+  amber: "bg-amber-400/15 text-amber-700 ring-amber-500/25",
+  rose: "bg-rose-500/10 text-rose-700 ring-rose-500/25",
 };
 
 const SIZES: Record<BadgeSize, string> = {

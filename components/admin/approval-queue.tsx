@@ -27,7 +27,7 @@ const DOC_STYLES: Record<
 > = {
   verified: {
     icon: Check,
-    className: "border-vip/30 bg-vip/10 text-vip",
+    className: "border-vip/30 bg-vip/10 text-vip-strong",
     label: "Verified",
   },
   pending: {
@@ -37,12 +37,12 @@ const DOC_STYLES: Record<
   },
   missing: {
     icon: CircleAlert,
-    className: "border-amber-400/30 bg-amber-400/10 text-amber-300",
+    className: "border-amber-400/30 bg-amber-400/10 text-amber-600",
     label: "Missing",
   },
   rejected: {
     icon: CircleSlash,
-    className: "border-rose-500/30 bg-rose-500/10 text-rose-300",
+    className: "border-rose-500/30 bg-rose-500/10 text-rose-600",
     label: "Rejected",
   },
 };
@@ -77,7 +77,7 @@ function DocPills({ app }: { app: MerchantApplication }) {
       </ul>
 
       {blocked.length > 0 && (
-        <p className="mt-2 flex items-start gap-1.5 text-[11px] text-amber-300/80">
+        <p className="mt-2 flex items-start gap-1.5 text-[11px] text-amber-600/80">
           <FileWarning className="mt-px h-3 w-3 shrink-0" aria-hidden="true" />
           Approval blocked —{" "}
           {blocked.map((k) => DOCUMENT_LABELS[k]).join(", ")}
@@ -114,7 +114,7 @@ export function ApprovalQueue({
   return (
     <section
       className={cn(
-        "flex flex-col rounded-2xl border border-surface-border bg-surface",
+        "flex flex-col rounded-2xl border border-surface-border bg-surface shadow-card",
         className,
       )}
       aria-labelledby="queue-heading"
@@ -122,7 +122,7 @@ export function ApprovalQueue({
       <div className="flex flex-wrap items-center gap-2 border-b border-surface-border p-5">
         <span className="rounded-lg bg-amber-400/10 p-2 ring-1 ring-inset ring-amber-400/20">
           <ClipboardList
-            className="h-4 w-4 text-amber-300"
+            className="h-4 w-4 text-amber-600"
             aria-hidden="true"
           />
         </span>
@@ -193,7 +193,7 @@ export function ApprovalQueue({
                         setRequested((r) => [...r, app.id]);
                       }}
                       disabled={requested.includes(app.id)}
-                      className="min-h-touch-sm font-mono text-[10px] uppercase tracking-wider text-accent transition disabled:text-muted-foreground"
+                      className="min-h-touch-sm font-mono text-[10px] uppercase tracking-wider text-accent-strong transition disabled:text-muted-foreground"
                     >
                       {requested.includes(app.id)
                         ? "Documents requested ✓"
@@ -306,7 +306,7 @@ export function ApprovalQueue({
                               setRequested((r) => [...r, app.id]);
                             }}
                             disabled={requested.includes(app.id)}
-                            className="font-mono text-[10px] uppercase tracking-wider text-accent transition hover:text-accent-hover disabled:text-muted-foreground"
+                            className="font-mono text-[10px] uppercase tracking-wider text-accent-strong transition hover:text-accent-hover disabled:text-muted-foreground"
                           >
                             {requested.includes(app.id)
                               ? "Documents requested ✓"
@@ -352,7 +352,7 @@ export function ApprovalQueue({
               onChange={(e) => setReason(e.target.value)}
               rows={4}
               placeholder="Reseller certificate does not match the registered business name."
-              className="w-full resize-none rounded-xl border border-surface-border bg-canvas/60 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-rose-500/50 focus:outline-none focus:ring-1 focus:ring-rose-500/40"
+              className="w-full resize-none rounded-xl border border-surface-border bg-canvas px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-rose-500/50 focus:outline-none focus:ring-1 focus:ring-rose-500/40"
             />
           </label>
           <p className="text-[11px] text-muted-foreground">
@@ -372,7 +372,7 @@ export function ApprovalQueue({
               fullWidth
               disabled={!reason.trim()}
               onClick={submitReject}
-              className="bg-gradient-to-r from-rose-500 to-rose-400 text-canvas shadow-none hover:from-rose-400 hover:to-rose-300 focus-visible:outline-rose-400"
+              className="bg-gradient-to-r from-rose-600 to-rose-500 text-white shadow-none hover:from-rose-500 hover:to-rose-400 focus-visible:outline-rose-400"
             >
               Reject application
             </Button>

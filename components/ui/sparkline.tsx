@@ -17,9 +17,9 @@ export interface SparklineProps {
 }
 
 const TONE_COLOR = {
-  down: "#10B981",
-  up: "#F87171",
-  neutral: "#38BDF8",
+  down: "#059669",
+  up: "#DC2626",
+  neutral: "#475569",
 } as const;
 
 export function Sparkline({

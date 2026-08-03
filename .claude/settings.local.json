@@ -26,7 +26,14 @@
       "Bash(curl -s -o /tmp/r3.json -w '%{http_code}\\\\n' -X POST http://localhost:3000/api/products -H 'Content-Type: application/json' -d '{\"title\":\"X\",\"condition\":\"open-box-excellent\",\"msrp\":100,\"price\":80,\"stock\":1,\"url\":\"https://example.com/p\",\"imageUrl\":\"javascript:alert\\(1\\)\"}')",
       "Bash(curl -s -o /tmp/r4.json -w '%{http_code}\\\\n' -X POST http://localhost:3000/api/products -H 'Content-Type: application/json' -d '{\"title\":\"X\",\"condition\":\"open-box-excellent\",\"msrp\":100,\"price\":80,\"stock\":1,\"url\":\"https://example.com/p\",\"imageUrl\":\"blob:http://localhost:3000/abc\"}')",
       "Bash(python -c ' *)",
-      "Bash(curl -s http://localhost:3000/merchants/dashboard)"
+      "Bash(curl -s http://localhost:3000/merchants/dashboard)",
+      "Bash(curl -s http://localhost:3000/api/merchants)",
+      "Bash(curl -s -X POST http://localhost:3000/api/merchants -H \"Content-Type: application/json\" -d '{\"legalBusinessName\":\"A\"}')",
+      "Bash(curl -s -X POST http://localhost:3000/api/merchants/ai -H \"Content-Type: application/json\" -d '{\"task\":\"price\",\"title\":\"Apple MacBook Air 13\\\\\" M2 16GB/512GB\",\"condition\":\"open-box-excellent\",\"msrp\":1199}')",
+      "Bash(curl -s -X POST http://localhost:3000/api/merchants/ai -H \"Content-Type: application/json\" -d '{\"task\":\"description\",\"title\":\"Sony WH-1000XM5\",\"condition\":\"certified-refurbished\",\"msrp\":399,\"price\":268}')",
+      "Bash(curl -s -X POST http://localhost:3000/api/merchants/ai -H \"Content-Type: application/json\" -d '{\"task\":\"price\"}')",
+      "Bash(npx next *)",
+      "Bash(git diff *)"
     ]
   }
 }

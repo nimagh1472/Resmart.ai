@@ -9,9 +9,14 @@ export function cn(...inputs: ClassValue[]) {
 /**
  * Fixed-timezone date formatting. Rendering ISO dates with the ambient locale
  * would let the server and client disagree and trip a hydration warning.
+ *
+ * Accepts both a date (`2026-07-30`) and a full timestamp — API records carry
+ * the latter, and appending a time to one that already has one yields an
+ * Invalid Date.
  */
 export function formatDate(iso: string) {
-  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", {
+  const value = iso.includes("T") ? iso : `${iso}T00:00:00Z`;
+  return new Date(value).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",

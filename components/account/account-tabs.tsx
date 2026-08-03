@@ -73,7 +73,7 @@ export function AccountTabs() {
               )}
             >
               <Icon
-                className={cn("h-4 w-4", active && "text-accent")}
+                className={cn("h-4 w-4", active && "text-accent-strong")}
                 aria-hidden="true"
               />
               {label}

@@ -52,7 +52,7 @@ export function WalletCard({
     >
       <div className="flex items-center gap-2">
         <span className="rounded-lg bg-accent/10 p-2 ring-1 ring-inset ring-accent/20">
-          <Wallet className="h-4 w-4 text-accent" aria-hidden="true" />
+          <Wallet className="h-4 w-4 text-accent-strong" aria-hidden="true" />
         </span>
         <h2 id="wallet-heading" className="font-heading text-sm font-semibold">
           Merchant Wallet
@@ -60,7 +60,7 @@ export function WalletCard({
       </div>
 
       {/* CPC ad spend --------------------------------------------- */}
-      <div className="flex flex-col gap-3 rounded-xl border border-surface-border bg-canvas/40 p-4">
+      <div className="flex flex-col gap-3 rounded-xl border border-surface-border bg-canvas p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -87,7 +87,7 @@ export function WalletCard({
         </div>
 
         {low && !autoRecharge && (
-          <p className="flex items-start gap-2 rounded-lg border border-amber-400/25 bg-amber-400/[0.06] px-3 py-2 text-xs text-amber-300">
+          <p className="flex items-start gap-2 rounded-lg border border-amber-400/25 bg-amber-400/[0.06] px-3 py-2 text-xs text-amber-600">
             <AlertTriangle
               className="mt-px h-3.5 w-3.5 shrink-0"
               aria-hidden="true"
@@ -104,7 +104,7 @@ export function WalletCard({
               {autoRecharge ? (
                 <>
                   Adds{" "}
-                  <span className="font-mono text-vip">
+                  <span className="font-mono text-vip-strong">
                     {formatCurrency(rechargeAmount)}
                   </span>{" "}
                   below{" "}
@@ -190,8 +190,8 @@ function Figure({
       <p
         className={cn(
           "font-mono text-xl font-semibold tabular-nums",
-          tone === "vip" && "text-vip",
-          tone === "amber" && "text-amber-300",
+          tone === "vip" && "text-vip-strong",
+          tone === "amber" && "text-amber-600",
           tone === "default" && "text-foreground",
         )}
       >

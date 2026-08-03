@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   BarChart3,
@@ -107,7 +107,7 @@ export default function MerchantsPage() {
           </div>
 
           <div className="px-gutter mx-auto flex max-w-4xl flex-col items-center gap-6 py-16 text-center sm:py-28">
-            <span className="inline-flex items-center gap-2 rounded-full border border-surface-border bg-surface px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-widest text-accent">
+            <span className="inline-flex items-center gap-2 rounded-full border border-surface-border bg-surface px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-widest text-accent-strong">
               For Retailers &amp; Refurbishers
             </span>
 
@@ -117,7 +117,7 @@ export default function MerchantsPage() {
                 80M+
               </span>{" "}
               High-Intent Open-Box Buyers.{" "}
-              <span className="text-accent">Pay Only For Clicks.</span>
+              <span className="text-accent-strong">Pay Only For Clicks.</span>
             </h1>
 
             <p className="max-w-2xl text-balance text-base text-muted sm:text-lg">
@@ -142,13 +142,13 @@ export default function MerchantsPage() {
               </Link>
             </div>
 
-            <dl className="mt-10 grid w-full grid-cols-2 gap-px overflow-hidden rounded-2xl border border-surface-border bg-surface-border md:grid-cols-4">
+            <dl className="mt-10 grid w-full grid-cols-2 gap-px overflow-hidden rounded-2xl border border-surface-border bg-surface shadow-card-border md:grid-cols-4">
               {STATS.map((s) => (
                 <div
                   key={s.label}
                   className="flex flex-col gap-1 bg-surface px-4 py-5"
                 >
-                  <dt className="font-mono text-2xl font-semibold tabular-nums text-accent">
+                  <dt className="font-mono text-2xl font-semibold tabular-nums text-accent-strong">
                     {s.value}
                   </dt>
                   <dd className="text-xs text-muted-foreground">{s.label}</dd>
@@ -162,7 +162,7 @@ export default function MerchantsPage() {
         <section className="border-y border-surface-border bg-canvas-soft py-20 sm:py-24">
           <div className="px-gutter mx-auto max-w-6xl">
             <div className="mx-auto mb-12 flex max-w-2xl flex-col items-center gap-3 text-center">
-              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">
+              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent-strong">
                 Why ReSmart
               </span>
               <h2 className="text-balance text-2xl font-bold sm:text-3xl lg:text-4xl">
@@ -174,10 +174,10 @@ export default function MerchantsPage() {
               {BENEFITS.map(({ icon: Icon, title, description }) => (
                 <li
                   key={title}
-                  className="flex flex-col gap-3 rounded-2xl border border-surface-border bg-surface p-5"
+                  className="flex flex-col gap-3 rounded-2xl border border-surface-border bg-surface shadow-card p-5"
                 >
                   <span className="w-fit rounded-lg bg-accent/10 p-2 ring-1 ring-inset ring-accent/20">
-                    <Icon className="h-4 w-4 text-accent" aria-hidden="true" />
+                    <Icon className="h-4 w-4 text-accent-strong" aria-hidden="true" />
                   </span>
                   <h3 className="font-heading font-semibold">{title}</h3>
                   <p className="text-sm leading-relaxed text-muted">
@@ -193,7 +193,7 @@ export default function MerchantsPage() {
         <section id="pricing" className="scroll-mt-24 py-20 sm:py-24">
           <div className="px-gutter mx-auto max-w-5xl">
             <div className="mx-auto mb-12 flex max-w-2xl flex-col items-center gap-3 text-center">
-              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">
+              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent-strong">
                 Pricing
               </span>
               <h2 className="text-balance text-2xl font-bold sm:text-3xl lg:text-4xl">
@@ -205,9 +205,9 @@ export default function MerchantsPage() {
               {STEPS.map((step, i) => (
                 <li
                   key={step.title}
-                  className="flex flex-col gap-2 rounded-2xl border border-surface-border bg-surface p-5"
+                  className="flex flex-col gap-2 rounded-2xl border border-surface-border bg-surface shadow-card p-5"
                 >
-                  <span className="font-mono text-xs text-accent">
+                  <span className="font-mono text-xs text-accent-strong">
                     0{i + 1}
                   </span>
                   <h3 className="font-heading font-semibold">{step.title}</h3>
@@ -223,11 +223,11 @@ export default function MerchantsPage() {
                 hidden fee discovered later. */}
             <div className="mt-10 grid gap-4 md:grid-cols-2">
               <div className="flex flex-col gap-3 rounded-2xl border border-vip/30 bg-surface p-8">
-                <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-vip/25 bg-vip/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest text-vip">
+                <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-vip/25 bg-vip/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest text-vip-strong">
                   <Coins className="h-3 w-3" aria-hidden="true" />
                   Base — everyone
                 </span>
-                <p className="font-mono text-4xl font-semibold tabular-nums text-vip">
+                <p className="font-mono text-4xl font-semibold tabular-nums text-vip-strong">
                   {COMMISSION_PCT}%
                   <span className="ml-1 font-sans text-base font-normal text-muted-foreground">
                     per completed sale
@@ -240,11 +240,11 @@ export default function MerchantsPage() {
               </div>
 
               <div className="flex flex-col gap-3 rounded-2xl border border-accent/25 bg-surface p-8">
-                <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-accent/25 bg-accent/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest text-accent">
+                <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-accent/25 bg-accent/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest text-accent-strong">
                   <Rocket className="h-3 w-3" aria-hidden="true" />
                   Optional add-on
                 </span>
-                <p className="font-mono text-4xl font-semibold tabular-nums text-accent">
+                <p className="font-mono text-4xl font-semibold tabular-nums text-accent-strong">
                   {CPC_RANGE}
                   <span className="ml-1 font-sans text-base font-normal text-muted-foreground">
                     / click

@@ -83,7 +83,7 @@ export function CashbackTicker({
         <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-vip" />
       </span>
 
-      <Zap className="h-3.5 w-3.5 shrink-0 text-vip" aria-hidden="true" />
+      <Zap className="h-3.5 w-3.5 shrink-0 text-vip-strong" aria-hidden="true" />
 
       <div className="relative min-w-0 flex-1">
         <AnimatePresence mode="wait" initial={false}>
@@ -98,7 +98,7 @@ export function CashbackTicker({
             User{" "}
             <span className="font-mono text-foreground">{event.user}</span> just
             saved{" "}
-            <span className="font-mono font-medium tabular-nums text-vip">
+            <span className="font-mono font-medium tabular-nums text-vip-strong">
               ${event.amount}
             </span>{" "}
             on {event.retailer} {event.product}!
