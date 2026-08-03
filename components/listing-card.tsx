@@ -1,5 +1,7 @@
-import { Package } from "lucide-react";
-import type { Product } from "@/lib/marketplace";
+import Link from "next/link";
+import { ChevronRight, Package } from "lucide-react";
+import { buttonStyles } from "@/components/ui/button-styles";
+import { liveProductHref, type Product } from "@/lib/marketplace";
 import { formatCurrency } from "@/lib/utils";
 
 const STORE_BADGE_CLASSES: Record<Product["store"], string> = {
@@ -9,16 +11,22 @@ const STORE_BADGE_CLASSES: Record<Product["store"], string> = {
   Walmart: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
 };
 
-/** A single live listing card — shared by the homepage feed and search results. */
+/**
+ * A single live listing card — shared by the homepage feed and search
+ * results. Routes internally to the comparison page rather than straight to
+ * the retailer, so every purchase click is attributed against the specific
+ * store the shopper picks there.
+ */
 export function ListingCard({ item }: { item: Product }) {
+  const href = liveProductHref(item);
+
   return (
-    <a
-      href={item.url}
-      target="_blank"
-      rel="noopener noreferrer nofollow"
-      className="group flex flex-col rounded-2xl border border-surface-border bg-surface shadow-card transition-colors hover:border-accent/40"
-    >
-      <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-t-2xl bg-canvas">
+    <article className="group flex flex-col rounded-2xl border border-surface-border bg-surface shadow-card transition-colors hover:border-accent/40">
+      <Link
+        href={href}
+        aria-label={`${item.title} — compare deals and details`}
+        className="relative flex aspect-square items-center justify-center overflow-hidden rounded-t-2xl bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+      >
         <span
           className={`absolute left-2 top-2 rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide ${STORE_BADGE_CLASSES[item.store]}`}
         >
@@ -35,16 +43,18 @@ export function ListingCard({ item }: { item: Product }) {
         ) : (
           <Package className="h-10 w-10 text-surface-border" aria-hidden="true" />
         )}
-      </div>
+      </Link>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
         <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
           {item.condition ?? "Not specified"}
         </span>
         <h3 className="line-clamp-2 font-heading text-sm font-medium leading-snug text-foreground">
-          {item.title}
+          <Link href={href} className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+            {item.title}
+          </Link>
         </h3>
-        <div className="mt-auto flex items-baseline gap-2">
+        <div className="flex items-baseline gap-2">
           <p className="font-mono text-xl font-semibold tabular-nums text-foreground">
             {formatCurrency(item.price)}
           </p>
@@ -54,7 +64,15 @@ export function ListingCard({ item }: { item: Product }) {
             </p>
           ) : null}
         </div>
+
+        <Link
+          href={href}
+          className={buttonStyles({ fullWidth: true, className: "mt-auto active:opacity-90" })}
+        >
+          <span className="truncate">Compare Deals &amp; Details</span>
+          <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+        </Link>
       </div>
-    </a>
+    </article>
   );
 }

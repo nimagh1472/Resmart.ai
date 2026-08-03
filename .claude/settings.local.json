@@ -74,7 +74,18 @@
       "Bash(curl -s \"http://localhost:3000/api/products/search?q=bicycle&limit=12\")",
       "Bash(curl -s \"http://localhost:3000/api/products/search?q=massage%20chair&limit=8\")",
       "Bash(curl -s \"http://localhost:3000/api/products/search?limit=12\")",
-      "Bash(powershell -NoProfile -Command 'Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '\\\\''*next*dev*'\\\\'' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }')"
+      "Bash(powershell -NoProfile -Command 'Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '\\\\''*next*dev*'\\\\'' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }')",
+      "Bash(npx eslint *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3100/)",
+      "Bash(break)",
+      "Bash(time curl -s -w \"\\\\nHTTP:%{http_code} TIME:%{time_total}s\\\\n\" \"http://localhost:3100/api/products/search?q=iphone&limit=24\" -o /tmp/search1.json)",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s -o /dev/null -w \"HTTP:%{http_code} TIME:%{time_total}s\\\\n\" --max-time 5 https://real-time-ebay-data.p.rapidapi.com/)",
+      "Bash(time curl -s -w \"\\\\nHTTP:%{http_code} TIME:%{time_total}s\\\\n\" \"http://localhost:3100/api/products/search?q=iphone&limit=24\" -o /tmp/search2.json)",
+      "Bash(curl -s http://localhost:3100/ -o /tmp/home.html)",
+      "Bash(curl -s \"http://localhost:3100/search?q=ps5\" -o /tmp/search_page.html -w \"HTTP:%{http_code}\\\\n\")",
+      "Bash(powershell -Command 'Get-Process -Name node -ErrorAction SilentlyContinue | Where-Object { $_.Path -like '\\\\''*node*'\\\\'' } | ForEach-Object { $_.Id }')",
+      "Bash(taskkill //F //IM node.exe //T)"
     ]
   }
 }

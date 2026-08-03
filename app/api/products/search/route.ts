@@ -12,10 +12,14 @@ import { fetchAllStores, fetchDiverseListings, DEFAULT_SEARCH_CATEGORIES } from 
  *           categories — PS5, iPhone, MacBook, OLED TV, Dyson, AirPods Max)
  *   limit   1–50 (default 20)
  *
- * If one store's API fails or rate-limits, results from the others still
- * load — failures are reported in `partialErrors` rather than failing the
- * whole request.
+ * Each store is queried strictly in parallel (`Promise.allSettled` inside
+ * `fetchAllStores`/`fetchDiverseListings`) with a 3s per-request timeout, so
+ * one slow or failing store never blocks the page — its failure is reported
+ * in `partialErrors` instead. Responses are cached for an hour so repeated
+ * queries resolve in well under a second.
  */
+export const revalidate = 3600;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q")?.trim() || "";
@@ -34,7 +38,7 @@ export async function GET(request: Request) {
         items,
         ...(errors.length ? { partialErrors: errors } : {}),
       },
-      { headers: { "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300" } },
+      { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" } },
     );
   } catch (error) {
     return NextResponse.json(

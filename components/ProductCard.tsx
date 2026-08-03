@@ -276,9 +276,9 @@ export function ProductCard({
           })}
         >
           <span className="truncate">
-            Compare {offerCount} Offer{offerCount === 1 ? "" : "s"}{" "}
+            Compare Deals &amp; Details{" "}
             <span className="font-mono tabular-nums text-white/75">
-              (from {formatCurrency(price)})
+              ({offerCount} offer{offerCount === 1 ? "" : "s"} from {formatCurrency(price)})
             </span>
           </span>
           <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />

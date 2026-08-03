@@ -1,54 +1,97 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight, TrendingDown, Wallet } from "lucide-react";
+import {
+  ChevronRight,
+  Package,
+  ShieldCheck,
+  TrendingDown,
+  Truck,
+  Wallet,
+} from "lucide-react";
 import { Navbar } from "@/components/navbar";
+import { LiveBuyButton } from "@/components/product/live-buy-button";
+import { LivePriceComparison } from "@/components/product/live-price-comparison";
 import { OfferComparison } from "@/components/product/offer-comparison";
 import { ProductGallery } from "@/components/product/product-gallery";
-import { ConditionBadge } from "@/components/ui/badge";
+import { Badge, ConditionBadge } from "@/components/ui/badge";
 import { Sparkline } from "@/components/ui/sparkline";
 import { Tooltip } from "@/components/ui/tooltip";
 import { CATEGORY_LABELS, MOCK_PRODUCTS, productById } from "@/lib/mock-products";
 import { offerNetCost } from "@/lib/catalog";
+import { bestOfferPerStore, fetchAllStores, type Product as LiveProduct } from "@/lib/marketplace";
+import { estimatePriceTrend } from "@/lib/price-trend";
+import { normalizeCondition, STORE_INFO } from "@/lib/store-info";
 import { formatCurrency } from "@/lib/utils";
 
-type Params = { params: { id: string } };
+type Params = {
+  params: { id: string };
+  searchParams: { title?: string; store?: string };
+};
 
 /**
  * The mock catalog is finite and known at build time, so every product page is
- * prerendered. Ids outside this set still resolve — `productById` returns
- * undefined and the page 404s — rather than rendering a shell for something
- * that doesn't exist.
+ * prerendered. Ids outside this set are either a live marketplace listing
+ * (resolved at request time from the `title`/`store` query params a listing
+ * card links with) or genuinely unknown, in which case the page 404s.
  */
 export function generateStaticParams() {
   return MOCK_PRODUCTS.map((p) => ({ id: p.id }));
 }
 
-export function generateMetadata({ params }: Params): Metadata {
+export function generateMetadata({ params, searchParams }: Params): Metadata {
   const product = productById(params.id);
 
-  if (!product) {
-    return { title: "Product not found" };
+  if (product) {
+    const title = `${product.brand} ${product.model}`;
+    const description = `Compare ${product.offers.length} open-box and refurbished offers for the ${title}, from ${formatCurrency(product.price)}. Warranty, shipping and VIP cashback side by side.`;
+
+    return {
+      title,
+      description,
+      openGraph: { title, description, type: "website" },
+      // Affiliate comparison pages shouldn't compete with the merchant listings
+      // they point at; index the page but let the outbound links stay nofollow.
+      alternates: { canonical: `/product/${encodeURIComponent(product.id)}` },
+    };
   }
 
-  const title = `${product.brand} ${product.model}`;
-  const description = `Compare ${product.offers.length} open-box and refurbished offers for the ${title}, from ${formatCurrency(product.price)}. Warranty, shipping and VIP cashback side by side.`;
+  const liveTitle = searchParams.title?.trim();
+  if (!liveTitle) return { title: "Product not found" };
+
+  const title = `${liveTitle} — Compare live prices`;
+  const description = `Compare live prices for ${liveTitle} across eBay, Amazon, Best Buy, and Walmart, with condition, delivery, and warranty details side by side.`;
 
   return {
     title,
     description,
     openGraph: { title, description, type: "website" },
-    // Affiliate comparison pages shouldn't compete with the merchant listings
-    // they point at; index the page but let the outbound links stay nofollow.
-    alternates: { canonical: `/product/${encodeURIComponent(product.id)}` },
+    alternates: { canonical: `/product/${encodeURIComponent(params.id)}` },
   };
 }
 
-export default function ProductPage({ params }: Params) {
+export default function ProductPage({ params, searchParams }: Params) {
   const product = productById(params.id);
 
-  if (!product) notFound();
+  if (product) return <MockProductView product={product} />;
 
+  const liveTitle = searchParams.title?.trim();
+  if (!liveTitle) notFound();
+
+  return (
+    <LiveProductView
+      id={params.id}
+      title={liveTitle}
+      preferredStore={searchParams.store}
+    />
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Curated catalog product — unchanged existing behavior               */
+/* ------------------------------------------------------------------ */
+
+function MockProductView({ product }: { product: NonNullable<ReturnType<typeof productById>> }) {
   const {
     id,
     brand,
@@ -240,6 +283,209 @@ export default function ProductPage({ params }: Params) {
               msrp={msrp}
               offers={offers}
             />
+          </div>
+        </div>
+      </main>
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Live marketplace listing — eBay / Amazon / Best Buy / Walmart       */
+/* ------------------------------------------------------------------ */
+
+async function LiveProductView({
+  id,
+  title,
+  preferredStore,
+}: {
+  id: string;
+  title: string;
+  preferredStore?: string;
+}) {
+  // 40 (not the smaller default) so the aggregator's internal shuffle-and-slice
+  // never randomly drops an entire store's results before they reach
+  // `bestOfferPerStore` — every store that answered should get a row.
+  const { items } = await fetchAllStores(title, 40).catch(
+    () => ({ items: [] as LiveProduct[], errors: [] }),
+  );
+
+  if (items.length === 0) notFound();
+
+  const offers = bestOfferPerStore(items);
+  const anchor =
+    items.find((item) => item.id === id) ??
+    offers.find((offer) => offer.store === preferredStore) ??
+    offers[0];
+
+  const trend = estimatePriceTrend(anchor, offers);
+  const condition = normalizeCondition(anchor.condition);
+  const { perks, warranty } = STORE_INFO[anchor.store];
+
+  const savings = anchor.originalPrice ? anchor.originalPrice - anchor.price : 0;
+  const savingsPct =
+    anchor.originalPrice && anchor.originalPrice > 0
+      ? Math.round((savings / anchor.originalPrice) * 100)
+      : 0;
+
+  return (
+    <>
+      <Navbar />
+      <main className="min-h-dvh bg-canvas">
+        <div className="px-gutter mx-auto max-w-7xl py-8 sm:py-12">
+          {/* Breadcrumb --------------------------------------------- */}
+          <nav aria-label="Breadcrumb" className="mb-6">
+            <ol className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+              <li>
+                <Link
+                  href="/"
+                  className="rounded-sm transition-colors hover:text-accent-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                >
+                  Home
+                </Link>
+              </li>
+              <ChevronRight className="h-3 w-3" aria-hidden="true" />
+              <li>
+                <Link
+                  href={`/search?q=${encodeURIComponent(title)}`}
+                  className="rounded-sm transition-colors hover:text-accent-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                >
+                  Search results
+                </Link>
+              </li>
+              <ChevronRight className="h-3 w-3" aria-hidden="true" />
+              <li aria-current="page" className="line-clamp-1 text-muted">
+                {title}
+              </li>
+            </ol>
+          </nav>
+
+          {/* Header ------------------------------------------------- */}
+          <section className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12">
+            <div className="relative aspect-square overflow-hidden rounded-2xl border border-surface-border bg-canvas">
+              {anchor.image ? (
+                // eslint-disable-next-line @next/next/no-img-element -- third-party CDN host isn't known ahead of time, so next/image's allowlist doesn't apply here.
+                <img
+                  src={anchor.image}
+                  alt={title}
+                  className="h-full w-full object-contain p-6"
+                />
+              ) : (
+                <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-gradient-to-br from-surface to-canvas">
+                  <Package className="h-14 w-14 text-surface-border" aria-hidden="true" />
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                    Photo unavailable
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone={condition.tone} size="md">
+                    {condition.label}
+                  </Badge>
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                    Best price at {anchor.store}
+                  </span>
+                </div>
+                <h1 className="text-balance font-heading text-2xl font-bold leading-tight sm:text-3xl lg:text-4xl">
+                  {title}
+                </h1>
+              </div>
+
+              {/* Price summary -------------------------------------- */}
+              <div className="flex flex-wrap items-end gap-x-8 gap-y-4 rounded-2xl border border-surface-border bg-surface shadow-card p-5">
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-accent-strong">
+                    Live price at {anchor.store}
+                  </p>
+                  <p className="font-mono text-3xl font-semibold tabular-nums leading-tight text-foreground sm:text-4xl">
+                    {formatCurrency(anchor.price)}
+                  </p>
+                </div>
+
+                {anchor.originalPrice && anchor.originalPrice > anchor.price && (
+                  <Tooltip content="The retailer's own list price for this listing, shown for reference.">
+                    <span className="flex cursor-help flex-col">
+                      <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                        List price
+                      </span>
+                      <span className="font-mono text-xl tabular-nums text-muted-foreground line-through decoration-muted-foreground/60">
+                        {formatCurrency(anchor.originalPrice)}
+                      </span>
+                    </span>
+                  </Tooltip>
+                )}
+              </div>
+
+              {savingsPct > 0 && (
+                <div className="flex items-center gap-2 rounded-xl bg-vip/10 px-3.5 py-2.5 ring-1 ring-inset ring-vip/25">
+                  <TrendingDown className="h-4 w-4 shrink-0 text-vip-strong" aria-hidden="true" />
+                  <p className="font-mono text-sm font-semibold tabular-nums text-vip-strong">
+                    Save {savingsPct}%{" "}
+                    <span className="text-vip-strong/70">/</span>{" "}
+                    {formatCurrency(savings)}
+                  </p>
+                </div>
+              )}
+
+              {/* Price trend ------------------------------------------ */}
+              <div className="rounded-2xl border border-surface-border bg-canvas p-4">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Price Trend
+                </span>
+                {trend ? (
+                  <>
+                    <Sparkline
+                      data={trend.series}
+                      tone={trend.tone}
+                      className="mt-2 h-14"
+                      ariaLabel={trend.label}
+                    />
+                    <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+                      {trend.label}
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Not enough pricing history yet — check back after we&apos;ve
+                    tracked this item over a few visits.
+                  </p>
+                )}
+              </div>
+
+              {/* Delivery, perks & warranty for the anchor store ------ */}
+              <div className="rounded-2xl border border-surface-border bg-surface shadow-card p-5">
+                <h2 className="mb-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Delivery &amp; Warranty — {anchor.store}
+                </h2>
+                <div className="flex flex-wrap gap-1.5">
+                  {perks.map((perk) => (
+                    <Badge
+                      key={perk}
+                      tone="slate"
+                      size="sm"
+                      icon={<Truck className="h-3 w-3" aria-hidden="true" />}
+                    >
+                      {perk}
+                    </Badge>
+                  ))}
+                </div>
+                <p className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted">
+                  <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-vip-strong" aria-hidden="true" />
+                  {warranty}
+                </p>
+              </div>
+
+              <LiveBuyButton productId={id} offer={anchor} offerCount={offers.length} />
+            </div>
+          </section>
+
+          {/* Offers --------------------------------------------------- */}
+          <div id="offers" className="scroll-mt-24 pt-12 sm:pt-16">
+            <LivePriceComparison productId={id} title={title} offers={offers} />
           </div>
         </div>
       </main>

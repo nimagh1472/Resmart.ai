@@ -49,20 +49,39 @@ function requireApiKey(): string {
   return apiKey;
 }
 
+/** A slow store must never hold up the whole search — abort and let the others win. */
+const REQUEST_TIMEOUT_MS = 3000;
+
+/** Every store fetch is cached for an hour so a repeated query is sub-second. */
+const CACHE_REVALIDATE_SECONDS = 3600;
+
 async function rapidApiGet(host: string, path: string): Promise<unknown> {
-  const response = await fetch(`https://${host}${path}`, {
-    headers: {
-      "x-rapidapi-key": requireApiKey(),
-      "x-rapidapi-host": host,
-    },
-    cache: "no-store",
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-  if (!response.ok) {
-    throw new Error(`${host} request failed with status ${response.status}`);
+  try {
+    const response = await fetch(`https://${host}${path}`, {
+      headers: {
+        "x-rapidapi-key": requireApiKey(),
+        "x-rapidapi-host": host,
+      },
+      signal: controller.signal,
+      next: { revalidate: CACHE_REVALIDATE_SECONDS },
+    });
+
+    if (!response.ok) {
+      throw new Error(`${host} request failed with status ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    if ((error as Error).name === "AbortError") {
+      throw new Error(`${host} request timed out after ${REQUEST_TIMEOUT_MS}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return response.json();
 }
 
 /** Parses "$1,299.00"-style strings (or already-numeric values) into a number. */
@@ -265,16 +284,11 @@ export async function fetchWalmartListings(query: string, limit = 20): Promise<P
 
 export type StoreError = { store: Store; message: string };
 
-async function fetchStore(
-  store: Store,
-  run: () => Promise<Product[]>,
-): Promise<{ store: Store; items: Product[]; error: string | null }> {
-  try {
-    return { store, items: await run(), error: null };
-  } catch (error) {
-    return { store, items: [], error: (error as Error).message };
-  }
-}
+/** Hard ceiling per store per query — keeps each API call fast and each feed high-signal. */
+const MIN_PER_STORE_RESULTS = 8;
+const MAX_PER_STORE_RESULTS = 10;
+
+const ALL_STORES: Store[] = ["eBay", "Amazon", "Best Buy", "Walmart"];
 
 function shuffle<T>(items: T[]): T[] {
   const copy = [...items];
@@ -286,30 +300,40 @@ function shuffle<T>(items: T[]): T[] {
 }
 
 /**
- * Queries eBay, Amazon, Best Buy, and Walmart in parallel for `query` and
- * merges/shuffles the results into one mixed feed. Each store is fetched
- * independently — if one fails or rate-limits, the others still populate
- * `items`, and the failure is reported in `errors` instead of throwing.
+ * Queries eBay, Amazon, Best Buy, and Walmart strictly in parallel for `query`
+ * via `Promise.allSettled`, so one slow or failing store (each capped at
+ * `REQUEST_TIMEOUT_MS`) never delays or breaks the others — a rejected store
+ * lands in `errors` instead of throwing, and the rest of `items` still loads.
  */
 export async function fetchAllStores(
   query: string,
   limit = 24,
 ): Promise<{ items: Product[]; errors: StoreError[] }> {
-  const perStoreLimit = Math.max(6, Math.ceil(limit / 4));
+  const perStoreLimit = Math.min(
+    MAX_PER_STORE_RESULTS,
+    Math.max(MIN_PER_STORE_RESULTS, Math.ceil(limit / 4)),
+  );
 
-  const results = await Promise.all([
-    fetchStore("eBay", () => fetchEbayListings(query, perStoreLimit)),
-    fetchStore("Amazon", () => fetchAmazonListings(query, perStoreLimit)),
-    fetchStore("Best Buy", () => fetchBestBuyListings(query, perStoreLimit)),
-    fetchStore("Walmart", () => fetchWalmartListings(query, perStoreLimit)),
+  const settled = await Promise.allSettled([
+    fetchEbayListings(query, perStoreLimit),
+    fetchAmazonListings(query, perStoreLimit),
+    fetchBestBuyListings(query, perStoreLimit),
+    fetchWalmartListings(query, perStoreLimit),
   ]);
 
-  const items = shuffle(results.flatMap((result) => result.items)).slice(0, limit);
-  const errors = results
-    .filter((result): result is typeof result & { error: string } => result.error !== null)
-    .map((result) => ({ store: result.store, message: result.error }));
+  const items: Product[] = [];
+  const errors: StoreError[] = [];
 
-  return { items, errors };
+  settled.forEach((result, i) => {
+    const store = ALL_STORES[i];
+    if (result.status === "fulfilled") {
+      items.push(...result.value);
+    } else {
+      errors.push({ store, message: (result.reason as Error).message });
+    }
+  });
+
+  return { items: shuffle(items).slice(0, limit), errors };
 }
 
 /**
@@ -342,4 +366,33 @@ export async function fetchDiverseListings(
   }
 
   return { items: shuffle(merged).slice(0, limit), errors };
+}
+
+// ---------------------------------------------------------------------------
+// Product detail page helpers
+// ---------------------------------------------------------------------------
+
+/** Canonical path for a live listing's comparison page, with enough context in the query string to re-run the cross-store search. */
+export function liveProductHref(item: Product): string {
+  const params = new URLSearchParams({ title: item.title, store: item.store });
+  return `/product/${encodeURIComponent(item.id)}?${params.toString()}`;
+}
+
+/**
+ * One representative listing per store — the cheapest — sorted by price.
+ * A raw multi-store search returns several listings per store; the
+ * comparison table reads better as one row per retailer than as a dump of
+ * every individual result.
+ */
+export function bestOfferPerStore(items: Product[]): Product[] {
+  const cheapestByStore = new Map<Store, Product>();
+
+  for (const item of items) {
+    const current = cheapestByStore.get(item.store);
+    if (!current || item.price < current.price) {
+      cheapestByStore.set(item.store, item);
+    }
+  }
+
+  return Array.from(cheapestByStore.values()).sort((a, b) => a.price - b.price);
 }
