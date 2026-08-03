@@ -7,6 +7,7 @@ import {
   type RetailerId,
 } from "@/lib/catalog";
 import { MOCK_PRODUCTS, CASHBACK_RATE } from "@/lib/mock-products";
+import { searchProducts } from "@/lib/search";
 import { CPC_MAX, CPC_MIN, validateImageSource } from "@/lib/mock-merchant";
 
 /**
@@ -17,12 +18,14 @@ import { CPC_MAX, CPC_MIN, validateImageSource } from "@/lib/mock-merchant";
  * contract the UI depends on, not the storage.
  *
  * Query params:
- *   q          full-text match on brand + model
- *   category   laptops | cameras | headphones | consoles
+ *   q          full-text match on title, description, category, brand,
+ *              condition and specs — see lib/search.ts
+ *   category   laptops | cameras | headphones | consoles | tvs | appliances
  *   retailer   best-buy | ebay | walmart | amazon-warehouse
  *   condition  open-box-excellent | certified-refurbished
  *   maxPrice   number
- *   sort       savings | price-asc | price-desc | discount
+ *   sort       relevance | savings | price-asc | price-desc | discount
+ *              (defaults to relevance when `q` is set, savings otherwise)
  *   limit      1–50 (default 20)
  *   history    "1" to include the 90-day price series (omitted by default)
  */
@@ -32,9 +35,17 @@ const VALID_CATEGORIES: ProductCategory[] = [
   "cameras",
   "headphones",
   "consoles",
+  "tvs",
+  "appliances",
 ];
 const VALID_RETAILERS = Object.keys(RETAILERS) as RetailerId[];
-const VALID_SORTS = ["savings", "price-asc", "price-desc", "discount"] as const;
+const VALID_SORTS = [
+  "relevance",
+  "savings",
+  "price-asc",
+  "price-desc",
+  "discount",
+] as const;
 type Sort = (typeof VALID_SORTS)[number];
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -47,7 +58,9 @@ export async function GET(request: Request) {
   const retailer = searchParams.get("retailer");
   const condition = searchParams.get("condition");
   const maxPriceRaw = searchParams.get("maxPrice");
-  const sort = (searchParams.get("sort") ?? "savings") as Sort;
+  // Relevance is only meaningful with a query; without one it would be an
+  // arbitrary order, so unqueried requests still default to best-savings-first.
+  const sort = (searchParams.get("sort") ?? (q ? "relevance" : "savings")) as Sort;
   const includeHistory = searchParams.get("history") === "1";
 
   // Clamp rather than reject — a bad limit shouldn't fail the whole request.
@@ -81,14 +94,19 @@ export async function GET(request: Request) {
     );
   }
 
-  const matched = MOCK_PRODUCTS.filter((p) => {
+  // Facets narrow first, then the text query ranks what's left — so `q` is
+  // scored against the same set the caller asked for, not the whole catalog.
+  const faceted = MOCK_PRODUCTS.filter((p) => {
     if (category && p.category !== category) return false;
     if (retailer && p.retailer !== retailer) return false;
     if (condition && p.condition !== condition) return false;
     if (maxPrice !== null && p.price > maxPrice) return false;
-    if (q && !`${p.brand} ${p.model}`.toLowerCase().includes(q)) return false;
     return true;
   });
+
+  const matched = q
+    ? searchProducts(q, faceted).map((hit) => hit.product)
+    : faceted;
 
   const items = matched
     .map((p) => {
@@ -129,6 +147,10 @@ export async function GET(request: Request) {
     })
     .sort((a, b) => {
       switch (sort) {
+        // `matched` already carries relevance order; Array.prototype.sort is
+        // stable per spec, so returning 0 preserves it.
+        case "relevance":
+          return 0;
         case "price-asc":
           return a.pricing.price - b.pricing.price;
         case "price-desc":

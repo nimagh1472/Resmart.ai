@@ -20,7 +20,9 @@ export type ProductCategory =
   | "laptops"
   | "cameras"
   | "headphones"
-  | "consoles";
+  | "consoles"
+  | "tvs"
+  | "appliances";
 
 /** ReSmart only surfaces graded, warranty-backed stock. */
 export type CardCondition =

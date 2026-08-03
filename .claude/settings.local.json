@@ -33,7 +33,16 @@
       "Bash(curl -s -X POST http://localhost:3000/api/merchants/ai -H \"Content-Type: application/json\" -d '{\"task\":\"description\",\"title\":\"Sony WH-1000XM5\",\"condition\":\"certified-refurbished\",\"msrp\":399,\"price\":268}')",
       "Bash(curl -s -X POST http://localhost:3000/api/merchants/ai -H \"Content-Type: application/json\" -d '{\"task\":\"price\"}')",
       "Bash(npx next *)",
-      "Bash(git diff *)"
+      "Bash(git diff *)",
+      "PowerShell(npx tsc --noEmit -p tsconfig.json)",
+      "PowerShell(npx next build)",
+      "Bash(curl -s -o /dev/null http://localhost:3111/api/products?limit=1)",
+      "Bash(curl -s http://localhost:3111/ -o /dev/null -w \"home: %{http_code}\\\\n\")",
+      "Bash(curl -s http://localhost:3111/product/lg-c4-oled-65 -o /dev/null -w \"tv page: %{http_code}\\\\n\")",
+      "Bash(curl -s http://localhost:3111/product/lg-wm4000-washer -o /dev/null -w \"washer page: %{http_code}\\\\n\")",
+      "Bash(curl -s \"http://localhost:3111/api/products?category=appliances\")",
+      "PowerShell(npx next lint)",
+      "PowerShell(npx prettier --write components/smart-search.tsx 2>$null; npx tsc --noEmit -p tsconfig.json)"
     ]
   }
 }

@@ -33,6 +33,14 @@ export type Product = {
   brand: string;
   model: string;
   category: ProductCategory;
+  /** Merchandising copy. Part of the search haystack, not rendered on the card. */
+  description?: string;
+  /**
+   * Search synonyms a shopper is likely to type but that appear nowhere in the
+   * title or description — "washing machine" for a unit branded "front load
+   * washer", "television" for a TV, "xbox" for a Microsoft console.
+   */
+  keywords?: string[];
   image?: string;
   /** Extra shots for the product page. `image` is used when this is empty. */
   gallery?: string[];

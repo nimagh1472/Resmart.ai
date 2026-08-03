@@ -1,36 +1,81 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  AlertTriangle,
   ArrowRight,
   CheckCircle2,
   ImageUp,
   Link2,
   Loader2,
   ScanLine,
+  Sparkles,
 } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Badge, ConditionBadge, type ProductCondition } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { productHref } from "@/components/ProductCard";
+import { cn, formatCurrency } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
-/* Mock recognition result — replace with the Claude vision call       */
+/* API contract — mirrors /app/api/vision/route.ts                     */
 /* ------------------------------------------------------------------ */
 
-const IDENTIFIED_PRODUCT = "Apple MacBook Air M2 16GB";
-const RETAIL_PRICE = 1399;
+type Extraction = {
+  identified: boolean;
+  confidence: "high" | "medium" | "low";
+  productName: string;
+  brand: string | null;
+  model: string | null;
+  modelNumber: string | null;
+  category: string;
+  categoryLabel: string;
+  condition: ProductCondition;
+  conditionLabel: string;
+  conditionStated: string | null;
+  estimatedMsrp: number;
+  msrpSource: "listed" | "estimated";
+  listedPrice: number | null;
+  retailer: string | null;
+  specifications: Record<string, string | null>;
+  searchKeywords: string[];
+  notes: string | null;
+};
 
-/** Tags stream in as the scan progresses; `at` is the progress % that reveals it. */
-const EXTRACTED_TAGS: { label: string; at: number }[] = [
-  { label: "Apple", at: 34 },
-  { label: "MacBook Air", at: 45 },
-  { label: "M2 chip", at: 56 },
-  { label: "16GB RAM", at: 67 },
-  { label: "512GB SSD", at: 78 },
-  { label: "Midnight", at: 87 },
-];
+type CatalogMatch = {
+  id: string;
+  title: string;
+  conditionLabel: string;
+  condition: ProductCondition;
+  msrp: number;
+  price: number;
+  savings: number;
+  offerCount: number;
+};
+
+type ProjectedOffer = {
+  id: string;
+  merchantLabel: string;
+  condition: ProductCondition;
+  price: number;
+  shipping: number;
+  cashback: number;
+  stock: string;
+};
+
+type ScanResult = {
+  source: "claude-vision" | "claude-text" | "heuristic";
+  degraded: boolean;
+  message?: string;
+  extraction: Extraction;
+  /** Listings confirmed to be the scanned product. */
+  catalogMatches: CatalogMatch[];
+  /** Same class of product, but not the one that was scanned. */
+  relatedMatches: CatalogMatch[];
+  projectedOffers: ProjectedOffer[];
+};
 
 const SCAN_STAGES: { label: string; until: number }[] = [
   { label: "Uploading capture…", until: 18 },
@@ -40,54 +85,32 @@ const SCAN_STAGES: { label: string; until: number }[] = [
   { label: "Ranking open-box matches…", until: 101 },
 ];
 
-type Match = {
-  retailer: string;
-  condition: ProductCondition;
-  price: number;
-  inStock: string;
-};
-
-const MATCHES: Match[] = [
-  {
-    retailer: "Best Buy",
-    condition: "open-box-excellent",
-    price: 1049,
-    inStock: "4 in stock",
-  },
-  {
-    retailer: "Woot",
-    condition: "like-new",
-    price: 1119,
-    inStock: "2 in stock",
-  },
-  {
-    retailer: "Apple",
-    condition: "certified-refurbished",
-    price: 1189,
-    inStock: "In stock",
-  },
-];
-
-const money = (n: number) =>
-  n.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  });
-
 const currentStage = (progress: number) =>
   SCAN_STAGES.find((s) => progress < s.until)?.label ?? "Finalizing…";
 
+/** Reads a File into the `data:image/png;base64,…` form the API accepts. */
+function toDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Could not read that file."));
+    reader.readAsDataURL(file);
+  });
+}
+
 /* ------------------------------------------------------------------ */
 
-type Phase = "idle" | "scanning" | "result";
+type Phase = "idle" | "scanning" | "result" | "error";
 
 export function VisionAiModal({
   open,
   onClose,
+  initialQuery = "",
 }: {
   open: boolean;
   onClose: () => void;
+  /** Whatever is in the search bar, passed to the model as user context. */
+  initialQuery?: string;
 }) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [progress, setProgress] = useState(0);
@@ -95,7 +118,11 @@ export function VisionAiModal({
   const [url, setUrl] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [result, setResult] = useState<ScanResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Bumped on reset/close so an in-flight request can't land on a stale view.
+  const requestId = useRef(0);
 
   // Release the blob whenever the preview is replaced or cleared.
   useEffect(() => {
@@ -107,62 +134,124 @@ export function VisionAiModal({
   useEffect(() => {
     if (open) return;
     const id = setTimeout(() => {
+      requestId.current += 1;
       setPhase("idle");
       setProgress(0);
       setDragging(false);
       setUrl("");
       setFileName(null);
       setPreviewUrl(null);
+      setResult(null);
+      setError(null);
     }, 250);
     return () => clearTimeout(id);
   }, [open]);
 
-  // Drive the mock scan.
+  /**
+   * Creep toward 90% while the request is in flight — the real call has no
+   * progress events, and a bar frozen at 0 reads as a hang. The jump to 100
+   * happens when the response lands.
+   */
   useEffect(() => {
     if (phase !== "scanning") return;
     const id = setInterval(() => {
-      setProgress((p) => Math.min(100, p + 1.8));
+      setProgress((p) => (p >= 90 ? p : Math.min(90, p + 1.8)));
     }, 55);
     return () => clearInterval(id);
   }, [phase]);
 
-  useEffect(() => {
-    if (phase !== "scanning" || progress < 100) return;
-    const id = setTimeout(() => setPhase("result"), 420);
-    return () => clearTimeout(id);
-  }, [phase, progress]);
+  const analyze = useCallback(
+    async (payload: {
+      image?: string;
+      filename?: string;
+      url?: string;
+      hint?: string;
+    }) => {
+      const ticket = ++requestId.current;
+      setError(null);
+      setResult(null);
+      setProgress(0);
+      setPhase("scanning");
 
-  const acceptFile = useCallback((file: File | undefined) => {
-    if (!file || !file.type.startsWith("image/")) return;
-    setFileName(file.name);
-    setPreviewUrl(URL.createObjectURL(file));
-    setProgress(0);
-    setPhase("scanning");
-  }, []);
+      try {
+        const response = await fetch("/api/vision", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const body = await response.json();
+        if (ticket !== requestId.current) return;
+
+        if (!response.ok) {
+          setError(body?.message ?? `Analysis failed (${response.status}).`);
+          setPhase("error");
+          return;
+        }
+
+        setResult(body as ScanResult);
+        setProgress(100);
+        // Let the bar visibly complete before swapping panels.
+        setTimeout(() => {
+          if (ticket === requestId.current) setPhase("result");
+        }, 320);
+      } catch {
+        if (ticket !== requestId.current) return;
+        setError("Could not reach the analysis service. Check your connection.");
+        setPhase("error");
+      }
+    },
+    [],
+  );
+
+  const acceptFile = useCallback(
+    async (file: File | undefined) => {
+      if (!file || !file.type.startsWith("image/")) return;
+      setFileName(file.name);
+      setPreviewUrl(URL.createObjectURL(file));
+      setUrl("");
+
+      try {
+        const dataUrl = await toDataUrl(file);
+        await analyze({
+          image: dataUrl,
+          filename: file.name,
+          hint: initialQuery || undefined,
+        });
+      } catch {
+        setError("Could not read that image file.");
+        setPhase("error");
+      }
+    },
+    [analyze, initialQuery],
+  );
 
   const onDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
       setDragging(false);
-      acceptFile(e.dataTransfer.files?.[0]);
+      void acceptFile(e.dataTransfer.files?.[0]);
     },
     [acceptFile],
   );
 
   const startUrlScan = useCallback(() => {
-    if (!url.trim()) return;
+    const trimmed = url.trim();
+    if (!trimmed) return;
     setFileName(null);
     setPreviewUrl(null);
-    setProgress(0);
-    setPhase("scanning");
-  }, [url]);
+    void analyze({ url: trimmed, hint: initialQuery || undefined });
+  }, [analyze, url, initialQuery]);
 
   const reset = useCallback(() => {
+    requestId.current += 1;
     setPhase("idle");
     setProgress(0);
     setFileName(null);
     setPreviewUrl(null);
     setUrl("");
+    setResult(null);
+    setError(null);
   }, []);
 
   return (
@@ -232,7 +321,7 @@ export function VisionAiModal({
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={(e) => acceptFile(e.target.files?.[0])}
+                  onChange={(e) => void acceptFile(e.target.files?.[0])}
                 />
               </div>
 
@@ -252,7 +341,7 @@ export function VisionAiModal({
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && startUrlScan()}
-                    placeholder="https://www.bestbuy.com/site/macbook-air…"
+                    placeholder="https://www.bestbuy.com/site/lg-65-class-c4-oled…"
                     aria-label="Retail product URL"
                     className="h-11 w-full rounded-xl border border-surface-border bg-canvas pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/40"
                   />
@@ -319,140 +408,273 @@ export function VisionAiModal({
                   </p>
                 </div>
               </div>
-
-              <div className="rounded-xl border border-surface-border bg-canvas p-4">
-                <p className="mb-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Extracted tags
-                </p>
-                <div className="flex min-h-[3.25rem] flex-wrap content-start gap-2">
-                  <AnimatePresence>
-                    {EXTRACTED_TAGS.filter((t) => progress >= t.at).map(
-                      (tag) => (
-                        <motion.span
-                          key={tag.label}
-                          initial={{ opacity: 0, scale: 0.9, y: 4 }}
-                          animate={{ opacity: 1, scale: 1, y: 0 }}
-                          transition={{
-                            type: "spring",
-                            stiffness: 400,
-                            damping: 28,
-                          }}
-                        >
-                          <Badge tone="sky" size="sm">
-                            {tag.label}
-                          </Badge>
-                        </motion.span>
-                      ),
-                    )}
-                  </AnimatePresence>
-                  {progress < EXTRACTED_TAGS[0].at && (
-                    <span className="text-xs text-muted-foreground">
-                      Waiting for the model…
-                    </span>
-                  )}
-                </div>
-              </div>
             </motion.div>
           )}
 
-          {phase === "result" && (
+          {phase === "error" && (
             <motion.div
-              key="result"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
+              key="error"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.24 }}
-              className="flex flex-col gap-5"
+              transition={{ duration: 0.18 }}
+              className="flex flex-col gap-4"
             >
-              <div className="flex items-start gap-3 rounded-xl border border-vip/25 bg-vip/[0.06] p-4">
-                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-vip-strong" />
+              <div className="flex items-start gap-3 rounded-xl border border-rose-500/25 bg-rose-500/[0.06] p-4">
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
                 <div className="min-w-0">
-                  <p className="font-heading font-medium leading-snug">
-                    Identified:{" "}
-                    <span className="text-vip-strong">{IDENTIFIED_PRODUCT}</span> —{" "}
-                    {MATCHES.length} Open-Box Matches Found
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Retail {money(RETAIL_PRICE)} · best match saves{" "}
-                    <span className="font-mono text-vip-strong">
-                      {money(RETAIL_PRICE - MATCHES[0].price)}
-                    </span>
-                  </p>
+                  <p className="font-heading font-medium">Analysis failed</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{error}</p>
                 </div>
               </div>
-
-              <div className="flex flex-wrap gap-2">
-                {EXTRACTED_TAGS.map((t) => (
-                  <Badge key={t.label} tone="sky" size="sm">
-                    {t.label}
-                  </Badge>
-                ))}
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Instant comparison
-                </p>
-                {MATCHES.map((m, i) => (
-                  <motion.div
-                    key={m.retailer}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.08 * i, duration: 0.25 }}
-                    className={cn(
-                      "flex items-center justify-between gap-3 rounded-xl border bg-surface p-3 transition hover:border-accent/40",
-                      i === 0
-                        ? "border-accent/40 shadow-glow"
-                        : "border-surface-border",
-                    )}
-                  >
-                    <div className="flex min-w-0 flex-col gap-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate font-medium">
-                          {m.retailer}
-                        </span>
-                        {i === 0 && (
-                          <Badge tone="emerald" size="sm">
-                            Best price
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <ConditionBadge condition={m.condition} size="sm" />
-                        <span className="text-xs text-muted-foreground">
-                          {m.inStock}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex shrink-0 flex-col items-end">
-                      <span className="font-mono text-lg font-medium tabular-nums text-foreground">
-                        {money(m.price)}
-                      </span>
-                      <span className="font-mono text-xs tabular-nums text-vip-strong">
-                        −{money(RETAIL_PRICE - m.price)}
-                      </span>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button
-                  fullWidth
-                  rightIcon={<ArrowRight className="h-4 w-4" />}
-                >
-                  See all {MATCHES.length} matches
-                </Button>
-                <Button variant="secondary" fullWidth onClick={reset}>
-                  Scan another
-                </Button>
-              </div>
+              <Button variant="secondary" fullWidth onClick={reset}>
+                Try again
+              </Button>
             </motion.div>
+          )}
+
+          {phase === "result" && result && (
+            <ResultPanel key="result" result={result} onReset={reset} />
           )}
         </AnimatePresence>
       </div>
     </Modal>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
+function ResultPanel({
+  result,
+  onReset,
+}: {
+  result: ScanResult;
+  onReset: () => void;
+}) {
+  const { extraction: x, catalogMatches, relatedMatches, projectedOffers } = result;
+  const inStock = catalogMatches.length > 0;
+  const bestPrice = inStock
+    ? catalogMatches[0].price
+    : projectedOffers[0]?.price ?? x.estimatedMsrp;
+
+  const specs = Object.entries(x.specifications).filter(([, v]) => v);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.24 }}
+      className="flex flex-col gap-5"
+    >
+      <div
+        className={cn(
+          "flex items-start gap-3 rounded-xl p-4",
+          x.identified
+            ? "border border-vip/25 bg-vip/[0.06]"
+            : "border border-surface-border bg-canvas",
+        )}
+      >
+        {x.identified ? (
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-vip-strong" />
+        ) : (
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+        )}
+        <div className="min-w-0">
+          <p className="font-heading font-medium leading-snug">
+            {x.identified ? "Identified: " : "Best guess: "}
+            <span className="text-vip-strong">{x.productName}</span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {x.categoryLabel} · {x.conditionLabel} ·{" "}
+            {x.msrpSource === "listed" ? "Listed" : "Est."} retail{" "}
+            <span className="font-mono text-foreground">
+              {formatCurrency(x.estimatedMsrp)}
+            </span>
+            {bestPrice < x.estimatedMsrp && (
+              <>
+                {" · best match saves "}
+                <span className="font-mono text-vip-strong">
+                  {formatCurrency(x.estimatedMsrp - bestPrice)}
+                </span>
+              </>
+            )}
+          </p>
+          {x.retailer && (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Source: {x.retailer}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Extracted signals ------------------------------------------- */}
+      <div className="flex flex-wrap gap-2">
+        {x.brand && (
+          <Badge tone="sky" size="sm">
+            {x.brand}
+          </Badge>
+        )}
+        {x.model && (
+          <Badge tone="sky" size="sm">
+            {x.model}
+          </Badge>
+        )}
+        {specs.map(([label, value]) => (
+          <Badge key={label} tone="sky" size="sm">
+            {value}
+          </Badge>
+        ))}
+        {x.searchKeywords.slice(0, 6).map((k) => (
+          <Badge key={k} tone="slate" size="sm">
+            {k}
+          </Badge>
+        ))}
+        <Badge tone={x.confidence === "high" ? "emerald" : "amber"} size="sm">
+          {x.confidence} confidence
+        </Badge>
+      </div>
+
+      {(result.degraded || x.notes) && (
+        <p className="rounded-lg border border-surface-border bg-canvas px-3 py-2 text-xs text-muted-foreground">
+          {x.notes ?? result.message}
+        </p>
+      )}
+
+      {/* Matches ------------------------------------------------------ */}
+      <div className="flex flex-col gap-2">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          {inStock ? "In stock now" : "Projected open-box pricing"}
+        </p>
+
+        {inStock
+          ? catalogMatches.map((m, i) => (
+              <motion.div
+                key={m.id}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.08 * i, duration: 0.25 }}
+              >
+                <Link
+                  href={productHref(m.id)}
+                  className={cn(
+                    "flex items-center justify-between gap-3 rounded-xl border bg-surface p-3 transition hover:border-accent/40",
+                    i === 0 ? "border-accent/40 shadow-glow" : "border-surface-border",
+                  )}
+                >
+                  <div className="flex min-w-0 flex-col gap-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate font-medium">{m.title}</span>
+                      {i === 0 && (
+                        <Badge tone="emerald" size="sm">
+                          Best match
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ConditionBadge condition={m.condition} size="sm" />
+                      <span className="text-xs text-muted-foreground">
+                        {m.offerCount} offer{m.offerCount === 1 ? "" : "s"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end">
+                    <span className="font-mono text-lg font-medium tabular-nums">
+                      {formatCurrency(m.price)}
+                    </span>
+                    <span className="font-mono text-xs tabular-nums text-vip-strong">
+                      −{formatCurrency(m.savings)}
+                    </span>
+                  </div>
+                </Link>
+              </motion.div>
+            ))
+          : projectedOffers.map((offer, i) => (
+              <motion.div
+                key={offer.id}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.08 * i, duration: 0.25 }}
+                className={cn(
+                  "flex items-center justify-between gap-3 rounded-xl border bg-surface p-3",
+                  i === 0 ? "border-accent/40" : "border-surface-border",
+                )}
+              >
+                <div className="flex min-w-0 flex-col gap-1.5">
+                  <span className="truncate font-medium">{offer.merchantLabel}</span>
+                  <div className="flex items-center gap-2">
+                    <ConditionBadge condition={offer.condition} size="sm" />
+                    <span className="text-xs text-muted-foreground">
+                      {offer.stock}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex shrink-0 flex-col items-end">
+                  <span className="font-mono text-lg font-medium tabular-nums">
+                    {formatCurrency(offer.price)}
+                  </span>
+                  <span className="font-mono text-xs tabular-nums text-vip-strong">
+                    +{formatCurrency(offer.cashback, { cents: true })} back
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+
+        {!inStock && (
+          <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <Sparkles className="h-3 w-3 shrink-0 text-vip-strong" aria-hidden="true" />
+            We don&apos;t stock this exact unit — projected from{" "}
+            {x.categoryLabel.toLowerCase()} pricing, not live inventory.
+          </p>
+        )}
+      </div>
+
+      {/* Near misses, kept clearly separate from the scanned product so the
+          closest laptop we happen to carry is never presented as a match. */}
+      {!inStock && relatedMatches.length > 0 && (
+        <div className="flex flex-col gap-2 border-t border-surface-border pt-4">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            Related, in stock today
+          </p>
+          {relatedMatches.slice(0, 2).map((m) => (
+            <Link
+              key={m.id}
+              href={productHref(m.id)}
+              className="flex items-center justify-between gap-3 rounded-xl border border-surface-border bg-canvas px-3 py-2 transition hover:border-accent/40"
+            >
+              <span className="flex min-w-0 flex-col gap-1">
+                <span className="truncate text-xs font-medium">{m.title}</span>
+                <span className="text-[11px] text-muted-foreground">
+                  {m.conditionLabel}
+                </span>
+              </span>
+              <span className="shrink-0 font-mono text-sm tabular-nums">
+                {formatCurrency(m.price)}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2 sm:flex-row">
+        {inStock ? (
+          <Link
+            href={productHref(catalogMatches[0].id)}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent-gradient px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
+          >
+            Compare offers
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+        ) : (
+          <Button fullWidth rightIcon={<ArrowRight className="h-4 w-4" />}>
+            Track this product
+          </Button>
+        )}
+        <Button variant="secondary" fullWidth onClick={onReset}>
+          Scan another
+        </Button>
+      </div>
+    </motion.div>
   );
 }
 

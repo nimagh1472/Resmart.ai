@@ -13,9 +13,11 @@ type Filter = "all" | ProductCategory;
 const FILTERS: Filter[] = [
   "all",
   "laptops",
-  "cameras",
-  "headphones",
+  "tvs",
   "consoles",
+  "appliances",
+  "headphones",
+  "cameras",
 ];
 
 export function TrendingDeals({

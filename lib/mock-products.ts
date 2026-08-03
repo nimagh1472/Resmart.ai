@@ -34,6 +34,8 @@ export const CATEGORY_LABELS: Record<ProductCategory, string> = {
   cameras: "Cameras",
   headphones: "Headphones",
   consoles: "Gaming Consoles",
+  tvs: "TVs",
+  appliances: "Appliances",
 };
 
 /**
@@ -68,7 +70,9 @@ type Seed = Omit<
   competitors: OfferSeed[];
 };
 
-const SEEDS: Seed[] = [
+// `satisfies` rather than an annotation so the ids stay literal types — that's
+// what makes SEARCH_COPY below exhaustive-checked against the catalog.
+const SEEDS = [
   /* Laptops -------------------------------------------------------- */
   {
     id: "apple-mba-m2-16-512",
@@ -597,7 +601,436 @@ const SEEDS: Seed[] = [
       },
     ],
   },
-];
+
+  /* TVs ------------------------------------------------------------- */
+  {
+    id: "lg-c4-oled-65",
+    brand: "LG",
+    model: 'C4 65" OLED evo 4K Smart TV',
+    category: "tvs",
+    retailer: "best-buy",
+    condition: "open-box-excellent",
+    msrp: 2499,
+    price: 1499,
+    trend: [1799, 1499],
+    dealUrl: "https://www.bestbuy.com/",
+    inStock: "3 in stock",
+    specs: [
+      ["Panel", '65" OLED evo · self-lit pixels'],
+      ["Resolution", "4K UHD 3840×2160 · 144Hz"],
+      ["Processor", "α9 AI Processor Gen7"],
+      ["Gaming", "4× HDMI 2.1 · VRR · G-SYNC · FreeSync"],
+      ["HDR", "Dolby Vision · HDR10 · HLG"],
+    ],
+    competitors: [
+      {
+        merchant: "walmart",
+        condition: "like-new",
+        delta: -40,
+        shipping: 89,
+        warranty: "6-Month Store Warranty",
+        stock: "1 in stock",
+        returns: "30-day returns",
+      },
+      {
+        merchant: "amazon-warehouse",
+        delta: 55,
+        stock: "2 in stock",
+        returns: "30-day returns",
+      },
+      {
+        merchant: "ebay",
+        condition: "certified-refurbished",
+        delta: 90,
+        warranty: "1-Year LG Warranty",
+        stock: "4 in stock",
+        returns: "14-day returns",
+      },
+    ],
+  },
+  {
+    id: "samsung-qn90d-55",
+    brand: "Samsung",
+    model: 'QN90D 55" Neo QLED 4K',
+    category: "tvs",
+    retailer: "walmart",
+    condition: "certified-refurbished",
+    msrp: 1599,
+    price: 1049,
+    trend: [1199, 1049],
+    dealUrl: "https://www.walmart.com/",
+    inStock: "5 in stock",
+    specs: [
+      ["Panel", '55" Neo QLED · Quantum Mini LED'],
+      ["Resolution", "4K UHD 3840×2160 · 120Hz"],
+      ["Processor", "NQ4 AI Gen2"],
+      ["Gaming", "4× HDMI 2.1 · Motion Xcelerator 144Hz"],
+      ["HDR", "Quantum HDR+ · HDR10+"],
+    ],
+    competitors: [
+      {
+        merchant: "best-buy",
+        condition: "open-box-excellent",
+        delta: 30,
+        stock: "2 in stock",
+        returns: "15-day returns",
+      },
+      {
+        merchant: "ebay",
+        condition: "like-new",
+        delta: -25,
+        shipping: 65,
+        warranty: "6-Month Seller Warranty",
+        stock: "1 in stock",
+        returns: "14-day returns",
+      },
+      {
+        merchant: "amazon-warehouse",
+        delta: 44,
+        stock: "3 in stock",
+        returns: "30-day returns",
+      },
+    ],
+  },
+  {
+    id: "sony-bravia-7-65",
+    brand: "Sony",
+    model: 'BRAVIA 7 65" Mini LED QLED',
+    category: "tvs",
+    retailer: "amazon-warehouse",
+    condition: "open-box-excellent",
+    msrp: 2099,
+    price: 1399,
+    trend: [1549, 1399],
+    dealUrl: "https://www.amazon.com/",
+    inStock: "2 in stock",
+    specs: [
+      ["Panel", '65" Mini LED · XR Backlight Master Drive'],
+      ["Resolution", "4K UHD 3840×2160 · 120Hz"],
+      ["Processor", "XR Processor with Cognitive Intelligence"],
+      ["Gaming", "2× HDMI 2.1 · Auto HDR Tone Mapping for PS5"],
+      ["Audio", "Acoustic Multi-Audio · Dolby Atmos"],
+    ],
+    competitors: [
+      {
+        merchant: "best-buy",
+        delta: 70,
+        stock: "1 in stock",
+        returns: "15-day returns",
+      },
+      {
+        merchant: "ebay",
+        condition: "like-new",
+        delta: -30,
+        shipping: 79,
+        warranty: "6-Month Seller Warranty",
+        stock: "2 in stock",
+        returns: "14-day returns",
+      },
+    ],
+  },
+  {
+    id: "tcl-qm7-65",
+    brand: "TCL",
+    model: 'QM7 65" QD-Mini LED 4K',
+    category: "tvs",
+    retailer: "walmart",
+    condition: "open-box-excellent",
+    msrp: 999,
+    price: 599,
+    trend: [699, 599],
+    dealUrl: "https://www.walmart.com/",
+    inStock: "7 in stock",
+    specs: [
+      ["Panel", '65" QD-Mini LED · 500+ dimming zones'],
+      ["Resolution", "4K UHD 3840×2160 · 144Hz"],
+      ["Platform", "Google TV"],
+      ["Gaming", "Game Accelerator 240 · VRR"],
+      ["HDR", "Dolby Vision IQ · HDR10+"],
+    ],
+    competitors: [
+      {
+        merchant: "best-buy",
+        condition: "certified-refurbished",
+        delta: 35,
+        warranty: "1-Year TCL Warranty",
+        stock: "4 in stock",
+        returns: "15-day returns",
+      },
+      {
+        merchant: "amazon-warehouse",
+        delta: 22,
+        stock: "6 in stock",
+        returns: "30-day returns",
+      },
+      {
+        merchant: "ebay",
+        condition: "like-new",
+        delta: -18,
+        shipping: 45,
+        warranty: "6-Month Seller Warranty",
+        stock: "2 in stock",
+        returns: "14-day returns",
+      },
+    ],
+  },
+
+  /* Appliances ------------------------------------------------------ */
+  {
+    id: "lg-wm4000-washer",
+    brand: "LG",
+    model: "WM4000HWA Front Load Washer · 4.5 cu ft",
+    category: "appliances",
+    retailer: "best-buy",
+    condition: "open-box-excellent",
+    msrp: 1099,
+    price: 719,
+    trend: [849, 719],
+    dealUrl: "https://www.bestbuy.com/",
+    inStock: "4 in stock",
+    specs: [
+      ["Capacity", "4.5 cu ft front-load drum"],
+      ["Cycles", "12 wash cycles · Allergiene steam"],
+      ["Motor", "Direct Drive inverter · 10-year warranty"],
+      ["Speed", "TurboWash 360 — full load in 30 min"],
+      ["Dimensions", '27" W × 39" H × 30.25" D'],
+    ],
+    competitors: [
+      {
+        merchant: "walmart",
+        condition: "like-new",
+        delta: -30,
+        shipping: 99,
+        warranty: "6-Month Store Warranty",
+        stock: "2 in stock",
+        returns: "30-day returns",
+      },
+      {
+        merchant: "ebay",
+        condition: "certified-refurbished",
+        delta: 45,
+        warranty: "1-Year LG Warranty",
+        stock: "1 in stock",
+        returns: "14-day returns",
+      },
+    ],
+  },
+  {
+    id: "samsung-dve45-dryer",
+    brand: "Samsung",
+    model: "DVE45 Electric Dryer · 7.5 cu ft",
+    category: "appliances",
+    retailer: "walmart",
+    condition: "open-box-excellent",
+    msrp: 949,
+    price: 599,
+    trend: [689, 599],
+    dealUrl: "https://www.walmart.com/",
+    inStock: "3 in stock",
+    specs: [
+      ["Capacity", "7.5 cu ft electric dryer"],
+      ["Cycles", "10 dry cycles · Steam Sanitize+"],
+      ["Sensor", "Sensor Dry moisture detection"],
+      ["Vent", "Vent Sensor with alert"],
+      ["Dimensions", '27" W × 38.75" H × 31.5" D'],
+    ],
+    competitors: [
+      {
+        merchant: "best-buy",
+        delta: 40,
+        stock: "5 in stock",
+        returns: "15-day returns",
+      },
+      {
+        merchant: "amazon-warehouse",
+        condition: "certified-refurbished",
+        delta: 58,
+        stock: "2 in stock",
+        returns: "30-day returns",
+      },
+      {
+        merchant: "ebay",
+        condition: "like-new",
+        delta: -22,
+        shipping: 89,
+        warranty: "6-Month Seller Warranty",
+        stock: "1 in stock",
+        returns: "14-day returns",
+      },
+    ],
+  },
+  {
+    id: "bosch-300-dishwasher",
+    brand: "Bosch",
+    model: "300 Series Dishwasher · 44 dBA",
+    category: "appliances",
+    retailer: "ebay",
+    condition: "certified-refurbished",
+    msrp: 949,
+    price: 629,
+    trend: [699, 629],
+    dealUrl: "https://www.ebay.com/",
+    inStock: "2 in stock",
+    specs: [
+      ["Noise", "44 dBA — among the quietest in class"],
+      ["Racks", "3rd rack with RackMatic adjustment"],
+      ["Cycles", "5 wash cycles · 5 options"],
+      ["Drying", "PrecisionWash with AutoAir"],
+      ["Dimensions", '23.56" W × 33.875" H × 23.75" D'],
+    ],
+    competitors: [
+      {
+        merchant: "best-buy",
+        condition: "open-box-excellent",
+        delta: 35,
+        stock: "3 in stock",
+        returns: "15-day returns",
+      },
+      {
+        merchant: "walmart",
+        condition: "like-new",
+        delta: -15,
+        shipping: 79,
+        warranty: "6-Month Store Warranty",
+        stock: "1 in stock",
+        returns: "30-day returns",
+      },
+    ],
+  },
+] satisfies Seed[];
+
+/**
+ * Search metadata, kept out of the seeds above so those stay focused on
+ * pricing. `description` is prose the full-text matcher scores against but the
+ * card never renders; `keywords` carries the terms a shopper actually types
+ * that appear nowhere in the title — "washing machine" for a unit branded
+ * "Front Load Washer", "television" for a TV, "xbox" for a Microsoft console.
+ *
+ * Keyed by the literal seed ids, so adding a product without search copy is a
+ * type error rather than a listing that quietly never matches a query.
+ */
+const SEARCH_COPY: Record<
+  (typeof SEEDS)[number]["id"],
+  { description: string; keywords: string[] }
+> = {
+  "apple-mba-m2-16-512": {
+    description:
+      "Ultraportable 13-inch Apple laptop with the M2 chip, 16GB unified memory and a 512GB SSD. Fanless, 18-hour battery, Liquid Retina display.",
+    keywords: ["macbook", "mac", "notebook", "ultrabook", "m2", "apple silicon"],
+  },
+  "dell-xps-15-9530": {
+    description:
+      "15-inch Windows creator laptop with a Core i7, RTX 4060 graphics, 32GB DDR5 and a 1TB NVMe SSD. Built for video editing and 3D work.",
+    keywords: ["notebook", "windows laptop", "gaming laptop", "workstation", "rtx"],
+  },
+  "lenovo-x1-carbon-g12": {
+    description:
+      "Business ultrabook weighing 2.42 lb with an Intel Core Ultra 7, 32GB LPDDR5x and a 14-inch touch display. MIL-STD tested chassis.",
+    keywords: ["thinkpad", "notebook", "business laptop", "ultrabook", "lenovo"],
+  },
+  "sony-a7-iv-body": {
+    description:
+      "33MP full-frame mirrorless camera body with 4K 60p 10-bit video and 5-axis in-body stabilization. Sony E mount, no lens included.",
+    keywords: ["mirrorless", "full frame", "alpha", "a7iv", "camera body", "photography"],
+  },
+  "canon-eos-r6-ii": {
+    description:
+      "24.2MP full-frame mirrorless camera with 40 fps burst shooting, 6K RAW output and up to 8 stops of stabilization. Canon RF mount.",
+    keywords: ["mirrorless", "full frame", "eos", "r6", "camera body", "photography"],
+  },
+  "gopro-hero12-black": {
+    description:
+      "Waterproof action camera shooting 5.3K 60p with HyperSmooth 6.0 stabilization. Rugged to 33 feet without a housing.",
+    keywords: ["action camera", "hero", "vlogging", "waterproof camera", "helmet cam"],
+  },
+  "sony-wh1000xm5": {
+    description:
+      "Over-ear wireless noise cancelling headphones with dual processors, eight microphones, LDAC support and 30-hour battery life.",
+    keywords: ["headphones", "anc", "noise cancelling", "over ear", "wireless", "xm5"],
+  },
+  "apple-airpods-pro-2": {
+    description:
+      "In-ear wireless earbuds with the Apple H2 chip, adaptive active noise cancellation and a USB-C MagSafe charging case. IP54 rated.",
+    keywords: ["earbuds", "airpods", "anc", "noise cancelling", "in ear", "wireless"],
+  },
+  "bose-qc-ultra": {
+    description:
+      "Over-ear wireless headphones with CustomTune adaptive noise cancelling and Bose Immersive spatial audio. 24-hour battery.",
+    keywords: ["headphones", "anc", "noise cancelling", "over ear", "quietcomfort", "wireless"],
+  },
+  "sony-ps5-slim-disc": {
+    description:
+      "Current-generation Sony games console with a 1TB SSD, detachable 4K Blu-ray drive and 4K 120Hz output. DualSense controller included.",
+    keywords: ["playstation", "ps5", "console", "gaming console", "video game system"],
+  },
+  "xbox-series-x-1tb": {
+    description:
+      "Microsoft's flagship games console — 12 teraflops of RDNA 2 graphics, a 1TB SSD, 4K UHD Blu-ray drive and 4K 120Hz output.",
+    keywords: ["xbox", "series x", "console", "gaming console", "microsoft", "video game system"],
+  },
+  "nintendo-switch-oled": {
+    description:
+      "Hybrid handheld and docked console with a 7-inch OLED touchscreen, 64GB storage and a wired LAN dock. White Joy-Con pair included.",
+    keywords: ["switch", "nintendo", "console", "handheld", "gaming console", "oled"],
+  },
+  "lg-c4-oled-65": {
+    description:
+      "65-inch OLED evo smart TV with perfect blacks, a 144Hz panel and four HDMI 2.1 ports. Dolby Vision, G-SYNC and FreeSync certified.",
+    keywords: ["tv", "television", "oled", "4k tv", "smart tv", "65 inch", "flat screen"],
+  },
+  "samsung-qn90d-55": {
+    description:
+      "55-inch Neo QLED 4K television using Quantum Mini LED backlighting for high brightness in lit rooms. 144Hz gaming, HDR10+.",
+    keywords: ["tv", "television", "qled", "4k tv", "smart tv", "55 inch", "neo qled", "flat screen"],
+  },
+  "sony-bravia-7-65": {
+    description:
+      "65-inch Mini LED television with XR Backlight Master Drive processing and PlayStation 5 auto HDR tone mapping. Dolby Atmos audio.",
+    keywords: ["tv", "television", "mini led", "4k tv", "smart tv", "65 inch", "bravia", "flat screen"],
+  },
+  "tcl-qm7-65": {
+    description:
+      "Value 65-inch QD-Mini LED 4K television with over 500 dimming zones, a 144Hz panel and Google TV built in. Dolby Vision IQ.",
+    keywords: ["tv", "television", "qled", "4k tv", "smart tv", "65 inch", "google tv", "flat screen"],
+  },
+  "lg-wm4000-washer": {
+    description:
+      "4.5 cu ft front-load washing machine with TurboWash 360 for 30-minute full loads, Allergiene steam cycle and a direct-drive inverter motor.",
+    keywords: [
+      "washing machine",
+      "washer",
+      "laundry",
+      "front load",
+      "clothes washer",
+      "appliance",
+      "white goods",
+    ],
+  },
+  "samsung-dve45-dryer": {
+    description:
+      "7.5 cu ft electric clothes dryer with Sensor Dry moisture detection, Steam Sanitize+ and a vent-blockage alert.",
+    keywords: [
+      "dryer",
+      "tumble dryer",
+      "clothes dryer",
+      "laundry",
+      "electric dryer",
+      "appliance",
+      "white goods",
+    ],
+  },
+  "bosch-300-dishwasher": {
+    description:
+      "Built-in 44 dBA dishwasher with a third rack, RackMatic height adjustment and PrecisionWash sensors with AutoAir drying.",
+    keywords: [
+      "dishwasher",
+      "kitchen appliance",
+      "appliance",
+      "built in dishwasher",
+      "white goods",
+    ],
+  },
+};
 
 /**
  * Expands a seed into the full offer set: the headline listing plus every
@@ -646,14 +1079,19 @@ function buildOffers(seed: Seed): MerchantOffer[] {
 export const MOCK_PRODUCTS: Product[] = SEEDS.map((seed, i) => {
   const offers = buildOffers(seed);
   const best = offers[0];
+  // `seed` is narrowed to its literal shape by `satisfies`, which drops the
+  // optional Seed fields no fixture happens to set. Widen to read them.
+  const { image, gallery } = seed as Seed;
 
   return {
     id: seed.id,
     brand: seed.brand,
     model: seed.model,
     category: seed.category,
-    image: seed.image,
-    gallery: seed.gallery,
+    description: SEARCH_COPY[seed.id].description,
+    keywords: SEARCH_COPY[seed.id].keywords,
+    image,
+    gallery,
     msrp: seed.msrp,
     // The card summarises the winning offer, so the two can never disagree —
     // even if a competitor is ever priced below the headline listing.
