@@ -6,6 +6,20 @@
 
 const RAPIDAPI_HOST = "real-time-ebay-data.p.rapidapi.com";
 
+/**
+ * Curated mix of high-interest open-box categories spanning gaming, phones,
+ * laptops, TVs, and audio — used whenever no specific search term is given
+ * so the storefront reads as a broad marketplace rather than one niche.
+ */
+export const DEFAULT_SEARCH_CATEGORIES = [
+  "PlayStation 5",
+  "iPhone",
+  "MacBook",
+  "OLED TV",
+  "Dyson",
+  "AirPods Max",
+];
+
 export type EbayListing = {
   id: string;
   title: string;
@@ -58,4 +72,38 @@ export async function fetchEbayListings(
       condition: String(item.condition ?? "Not specified"),
     };
   });
+}
+
+/**
+ * Fetches several category queries in parallel and interleaves the results
+ * (round-robin) so the combined feed alternates between categories instead
+ * of running one category at a time, then trims to `limit` and dedupes.
+ */
+export async function fetchDiverseEbayListings(
+  categories: string[] = DEFAULT_SEARCH_CATEGORIES,
+  limit = 20,
+): Promise<EbayListing[]> {
+  const perCategoryLimit = Math.max(4, Math.ceil(limit / categories.length));
+
+  const results = await Promise.all(
+    categories.map((category) =>
+      fetchEbayListings(category, perCategoryLimit).catch(() => []),
+    ),
+  );
+
+  const interleaved: EbayListing[] = [];
+  const seen = new Set<string>();
+  const maxRounds = Math.max(...results.map((r) => r.length), 0);
+
+  for (let round = 0; round < maxRounds; round++) {
+    for (const categoryResults of results) {
+      const item = categoryResults[round];
+      if (item && !seen.has(item.id)) {
+        seen.add(item.id);
+        interleaved.push(item);
+      }
+    }
+  }
+
+  return interleaved.slice(0, limit);
 }

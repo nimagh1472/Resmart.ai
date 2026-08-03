@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchEbayListings } from "@/lib/ebay";
+import { fetchEbayListings, fetchDiverseEbayListings, DEFAULT_SEARCH_CATEGORIES } from "@/lib/ebay";
 
 /**
  * GET /api/products/search
@@ -7,18 +7,21 @@ import { fetchEbayListings } from "@/lib/ebay";
  * Live inventory feed sourced from RapidAPI's Real-Time eBay Data API.
  *
  * Query params:
- *   q       search term (defaults to "laptop")
+ *   q       search term (defaults to a diverse mix of popular open-box
+ *           categories — PS5, iPhone, MacBook, OLED TV, Dyson, AirPods Max)
  *   limit   1–50 (default 20)
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const q = searchParams.get("q")?.trim() || "laptop";
+  const q = searchParams.get("q")?.trim() || "";
   const limit = Math.min(50, Math.max(1, Number(searchParams.get("limit")) || 20));
 
   try {
-    const items = await fetchEbayListings(q, limit);
+    const items = q
+      ? await fetchEbayListings(q, limit)
+      : await fetchDiverseEbayListings(DEFAULT_SEARCH_CATEGORIES, limit);
     return NextResponse.json(
-      { source: "rapidapi-ebay", query: q, count: items.length, items },
+      { source: "rapidapi-ebay", query: q || "diverse-mix", count: items.length, items },
       { headers: { "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300" } },
     );
   } catch (error) {
