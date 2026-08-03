@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
+import Script from "next/script";
 import { VipProvider } from "@/components/vip-modal";
 import "./globals.css";
 
@@ -84,6 +85,10 @@ export default function RootLayout({
         className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} bg-canvas text-foreground font-sans antialiased`}
       >
         <VipProvider>{children}</VipProvider>
+        <Script
+          src="//vglnk-cdn.com/1/v1/vglnk.js?key=bf5a10f081f01324bdec6da0f2c0fb31"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
