@@ -1,11 +1,13 @@
 import { Navbar } from "@/components/navbar";
 import { Hero } from "@/components/hero";
-import { TrendingDeals } from "@/components/trending-deals";
+import { LiveProducts } from "@/components/live-products";
 import { HowItWorks } from "@/components/how-it-works";
 import { VipCta } from "@/components/vip-cta";
-import { MOCK_PRODUCTS } from "@/lib/mock-products";
+import { fetchEbayListings } from "@/lib/ebay";
 
-export default function Home() {
+export default async function Home() {
+  const listings = await fetchEbayListings("laptop").catch(() => []);
+
   return (
     <>
       <Navbar />
@@ -13,7 +15,7 @@ export default function Home() {
         <Hero />
 
         <div id="deals" className="scroll-mt-24">
-          <TrendingDeals products={MOCK_PRODUCTS} />
+          <LiveProducts listings={listings} />
         </div>
 
         <HowItWorks />

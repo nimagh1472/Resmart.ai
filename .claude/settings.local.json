@@ -42,7 +42,14 @@
       "Bash(curl -s http://localhost:3111/product/lg-wm4000-washer -o /dev/null -w \"washer page: %{http_code}\\\\n\")",
       "Bash(curl -s \"http://localhost:3111/api/products?category=appliances\")",
       "PowerShell(npx next lint)",
-      "PowerShell(npx prettier --write components/smart-search.tsx 2>$null; npx tsc --noEmit -p tsconfig.json)"
+      "PowerShell(npx prettier --write components/smart-search.tsx 2>$null; npx tsc --noEmit -p tsconfig.json)",
+      "WebSearch",
+      "WebFetch(domain:rapidapi.com)",
+      "WebFetch(domain:www.openwebninja.com)",
+      "Bash(npx tsc *)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(curl -s \"http://localhost:3000/api/products/search?q=laptop&limit=3\")",
+      "Bash(curl -s \"http://localhost:3000/\")"
     ]
   }
 }
