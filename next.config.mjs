@@ -8,6 +8,8 @@ const nextConfig = {
       { protocol: "https", hostname: "i.ebayimg.com" }, // eBay
       { protocol: "https", hostname: "i5.walmartimages.com" }, // Walmart
       { protocol: "https", hostname: "m.media-amazon.com" }, // Amazon Warehouse
+      { protocol: "https", hostname: "target.scene7.com" }, // Target
+      { protocol: "https", hostname: "targetimg1.targetstatic.com" }, // Target
     ],
   },
 };

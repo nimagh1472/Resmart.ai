@@ -16,9 +16,10 @@ import {
 /**
  * POST /api/seed — populate Supabase with demo data.
  *
- * Guarded twice: an admin credential, plus an explicit ALLOW_SEED=true. The
- * endpoint deletes and recreates accounts, so it must not be reachable by
- * accident in a deployed environment.
+ * Guarded three ways: an admin credential, an explicit ALLOW_SEED=true, and
+ * NODE_ENV === "development". The endpoint deletes and recreates accounts,
+ * so it must not be reachable by accident in a deployed environment even if
+ * ALLOW_SEED is left set in a shared .env file.
  *
  * Body: { reset?: boolean }  — reset (default true) removes prior seed rows.
  */
@@ -39,12 +40,16 @@ export async function POST(request: Request) {
   const auth = await requireAdmin(request);
   if (!auth.ok) return auth.response;
 
-  if (process.env.ALLOW_SEED !== "true") {
+  // Belt-and-suspenders: even a mistakenly-set ALLOW_SEED=true in a deployed
+  // environment must not enable an endpoint that deletes and recreates
+  // accounts. NODE_ENV is set by the Next.js build/start scripts, not user
+  // config, so it can't be flipped via the same env file that sets ALLOW_SEED.
+  if (process.env.NODE_ENV !== "development" || process.env.ALLOW_SEED !== "true") {
     return NextResponse.json(
       {
         error: "seeding_disabled",
         message:
-          "Set ALLOW_SEED=true to enable this endpoint. It deletes and recreates accounts.",
+          "Seeding is only available in local development with ALLOW_SEED=true. It deletes and recreates accounts.",
       },
       { status: 403 },
     );

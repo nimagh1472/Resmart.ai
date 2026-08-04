@@ -130,12 +130,15 @@ create table platform_settings (
   vip_fee_cents         integer       not null default 1499
     check (vip_fee_cents between 499 and 4999),
   -- Per-store VIP cashback, as percentage points (2.0 = 2%), keyed by the
-  -- five retailers ReSmart compares: ebay, amazon, bestbuy, walmart, target.
+  -- five retailers ReSmart compares. Keys match lib/cashback-rates.ts's
+  -- `Store` labels exactly ("eBay", "Best Buy", ...) since the app reads
+  -- this column straight into a `CashbackRates` record with no key
+  -- translation — a mismatched key here would silently read as `undefined`.
   -- Each is capped at 3% in the app layer (app/api/admin/route.ts,
   -- app/api/cashback-rates/route.ts) — well under default_commission_rate's
   -- 5% floor, so cashback can never exceed commission by construction.
   cashback_rates        jsonb         not null
-    default '{"ebay":2.0,"amazon":1.0,"bestbuy":1.5,"walmart":1.0,"target":1.0}'::jsonb,
+    default '{"eBay":2.0,"Amazon":1.0,"Best Buy":1.5,"Walmart":1.0,"Target":1.0}'::jsonb,
   default_commission_rate numeric(6, 4) not null default 0.1000
     check (default_commission_rate between 0.05 and 0.25),
   updated_by            uuid references users (id) on delete set null,
