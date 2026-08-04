@@ -2,24 +2,31 @@
 /* Platform settings                                                   */
 /* ------------------------------------------------------------------ */
 
+import {
+  CASHBACK_RATE_BOUNDS,
+  DEFAULT_CASHBACK_RATES,
+  averageCashbackFraction,
+  type CashbackRates,
+} from "@/lib/cashback-rates";
+
 export type PlatformSettings = {
   /** VIP subscription price, USD per month. */
   vipFee: number;
-  /** Cashback paid to VIP members, as a fraction of eligible spend. */
-  cashbackRate: number;
+  /** Cashback paid to VIP members, per store, as a percentage point (2.0 = 2%). */
+  cashbackRates: CashbackRates;
   /** Platform commission on completed merchant sales, as a fraction. */
   commissionRate: number;
 };
 
 export const DEFAULT_SETTINGS: PlatformSettings = {
   vipFee: 14.99,
-  cashbackRate: 0.03,
+  cashbackRates: DEFAULT_CASHBACK_RATES,
   commissionRate: 0.1,
 };
 
 export const SETTING_BOUNDS = {
   vipFee: { min: 4.99, max: 49.99, step: 1 },
-  cashbackRate: { min: 0.01, max: 0.05, step: 0.0025 },
+  cashbackRates: CASHBACK_RATE_BOUNDS,
   commissionRate: { min: 0.05, max: 0.25, step: 0.005 },
 } as const;
 
@@ -60,7 +67,7 @@ export const MOCK_FINANCIALS: PlatformFinancials = {
   cpcAdRevenue: 186_420,
   recordedCommissionRate: 0.1,
   recordedVipFee: 14.99,
-  recordedCashbackRate: 0.03,
+  recordedCashbackRate: averageCashbackFraction(DEFAULT_CASHBACK_RATES),
   deltas: { gmv: 0.184, commission: 0.184, vip: 0.092, cpc: 0.231, cashback: 0.147 },
 };
 
@@ -88,8 +95,8 @@ export function projectSettingsImpact(
 ) {
   const commission = f.gmv * (next.commissionRate - f.recordedCommissionRate);
   const vip = f.vipSubscribers * (next.vipFee - f.recordedVipFee);
-  const cashback =
-    f.vipAttributedGmv * (next.cashbackRate - f.recordedCashbackRate);
+  const nextCashbackRate = averageCashbackFraction(next.cashbackRates);
+  const cashback = f.vipAttributedGmv * (nextCashbackRate - f.recordedCashbackRate);
   return { commission, vip, cashback, net: commission + vip - cashback };
 }
 

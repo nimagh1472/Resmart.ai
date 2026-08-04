@@ -25,6 +25,7 @@ import {
   type ProductCategory,
   type RetailerId,
 } from "@/lib/catalog";
+import { computeCashback, rateForRetailer } from "@/lib/cashback-rates";
 
 /** Categories the catalog carries, plus a bucket for everything else. */
 export type InferredCategory = ProductCategory | "other";
@@ -569,8 +570,6 @@ const SOURCING: Record<InferredCategory, RetailerId[]> = {
   other: ["amazon-warehouse", "ebay", "best-buy", "walmart"],
 };
 
-const CASHBACK_RATE = 0.03;
-
 /**
  * Three plausible open-box listings for a product we don't stock yet.
  *
@@ -610,7 +609,7 @@ export function buildAiMatchOffers(parsed: ParsedProduct): AiMatchOffer[] {
         warranty: defaultWarranty(parsed.brand ?? "Manufacturer", condition),
         price,
         shipping,
-        cashback: Math.round(price * CASHBACK_RATE * 100) / 100,
+        cashback: computeCashback(price, rateForRetailer(merchant)),
         stock: i === 0 ? "Checking stock" : "Availability varies",
         dealUrl: RETAILERS[merchant].home,
       } satisfies AiMatchOffer;

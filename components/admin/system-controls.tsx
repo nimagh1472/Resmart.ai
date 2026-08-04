@@ -10,6 +10,7 @@ import {
   type PlatformFinancials,
   type PlatformSettings,
 } from "@/lib/mock-admin";
+import { CASHBACK_STORES } from "@/lib/cashback-rates";
 import { cn, formatCurrency } from "@/lib/utils";
 
 /**
@@ -32,10 +33,14 @@ export function SystemControls({
 
   const dirty =
     draft.vipFee !== settings.vipFee ||
-    draft.cashbackRate !== settings.cashbackRate ||
-    draft.commissionRate !== settings.commissionRate;
+    draft.commissionRate !== settings.commissionRate ||
+    CASHBACK_STORES.some(
+      (store) => draft.cashbackRates[store] !== settings.cashbackRates[store],
+    );
 
   const impact = projectSettingsImpact(financials, draft);
+  const maxCashbackFraction =
+    Math.max(...CASHBACK_STORES.map((store) => draft.cashbackRates[store])) / 100;
 
   const patch = (p: Partial<PlatformSettings>) => {
     setDraft((d) => ({ ...d, ...p }));
@@ -99,17 +104,28 @@ export function SystemControls({
         </div>
       </label>
 
-      {/* Cashback --------------------------------------------------- */}
-      <PercentSlider
-        id="cashback-rate"
-        label="Member cashback rate"
-        value={draft.cashbackRate}
-        bounds={SETTING_BOUNDS.cashbackRate}
-        defaultValue={DEFAULT_SETTINGS.cashbackRate}
-        decimals={2}
-        tone="vip"
-        onChange={(cashbackRate) => patch({ cashbackRate })}
-      />
+      {/* Cashback ----------------------------------------------------- */}
+      <div className="flex flex-col gap-4">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          Member cashback rate — per store
+        </span>
+        {CASHBACK_STORES.map((store) => (
+          <PercentSlider
+            key={store}
+            id={`cashback-rate-${store.toLowerCase().replace(/\s+/g, "-")}`}
+            label={store}
+            value={draft.cashbackRates[store]}
+            bounds={SETTING_BOUNDS.cashbackRates}
+            defaultValue={DEFAULT_SETTINGS.cashbackRates[store]}
+            decimals={2}
+            tone="vip"
+            raw
+            onChange={(rate) =>
+              patch({ cashbackRates: { ...draft.cashbackRates, [store]: rate } })
+            }
+          />
+        ))}
+      </div>
 
       {/* Commission ------------------------------------------------- */}
       <PercentSlider
@@ -158,7 +174,7 @@ export function SystemControls({
         )}
       </div>
 
-      {dirty && draft.cashbackRate > draft.commissionRate && (
+      {dirty && maxCashbackFraction > draft.commissionRate && (
         <p className="flex items-start gap-2 rounded-xl border border-rose-500/25 bg-rose-500/[0.06] px-3 py-2 text-xs text-rose-700">
           <TriangleAlert
             className="mt-px h-3.5 w-3.5 shrink-0"
@@ -209,6 +225,7 @@ function PercentSlider({
   defaultValue,
   decimals,
   tone,
+  raw = false,
   onChange,
 }: {
   id: string;
@@ -218,9 +235,11 @@ function PercentSlider({
   defaultValue: number;
   decimals: number;
   tone: "accent" | "vip";
+  /** When true, `value`/`bounds`/`defaultValue` are already percentage points (2.0 = 2%) rather than a 0–1 fraction. */
+  raw?: boolean;
   onChange: (v: number) => void;
 }) {
-  const pct = (n: number) => `${(n * 100).toFixed(decimals)}%`;
+  const pct = (n: number) => `${(raw ? n : n * 100).toFixed(decimals)}%`;
 
   return (
     <div className="flex flex-col gap-1.5">

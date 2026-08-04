@@ -129,16 +129,17 @@ create table platform_settings (
   id                    boolean primary key default true check (id),
   vip_fee_cents         integer       not null default 1499
     check (vip_fee_cents between 499 and 4999),
-  cashback_rate         numeric(6, 4) not null default 0.0300
-    check (cashback_rate between 0.01 and 0.05),
+  -- Per-store VIP cashback, as percentage points (2.0 = 2%), keyed by the
+  -- five retailers ReSmart compares: ebay, amazon, bestbuy, walmart, target.
+  -- Each is capped at 3% in the app layer (app/api/admin/route.ts,
+  -- app/api/cashback-rates/route.ts) — well under default_commission_rate's
+  -- 5% floor, so cashback can never exceed commission by construction.
+  cashback_rates        jsonb         not null
+    default '{"ebay":2.0,"amazon":1.0,"bestbuy":1.5,"walmart":1.0,"target":1.0}'::jsonb,
   default_commission_rate numeric(6, 4) not null default 0.1000
     check (default_commission_rate between 0.05 and 0.25),
   updated_by            uuid references users (id) on delete set null,
-  updated_at            timestamptz   not null default now(),
-
-  -- Paying out more than is earned on each sale is never intended.
-  constraint settings_cashback_below_commission
-    check (cashback_rate <= default_commission_rate)
+  updated_at            timestamptz   not null default now()
 );
 
 insert into platform_settings (id) values (true) on conflict do nothing;

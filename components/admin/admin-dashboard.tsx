@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CheckCircle2, ClipboardList, Lock, PanelRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SideDrawer } from "@/components/ui/side-drawer";
@@ -59,6 +59,32 @@ function AdminConsole() {
 
   const isDesktop = useIsDesktop();
 
+  // Pick up any cashback rates a previous save already persisted, so
+  // reopening the console doesn't show stale defaults.
+  useEffect(() => {
+    fetch("/api/cashback-rates", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.rates) {
+          setSettings((prev) => ({ ...prev, cashbackRates: data.rates }));
+        }
+      })
+      .catch(() => {
+        /* Falls back to DEFAULT_SETTINGS — the live catalog still applies its own default rates. */
+      });
+  }, []);
+
+  const saveSettings = (next: PlatformSettings) => {
+    setSettings(next);
+    fetch("/api/cashback-rates", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rates: next.cashbackRates }),
+    }).catch(() => {
+      /* Local state still reflects the change even if the persist call fails. */
+    });
+  };
+
   const decide = (id: string, outcome: Decision["outcome"]) => {
     const app = applications.find((a) => a.id === id);
     if (!app) return;
@@ -74,7 +100,7 @@ function AdminConsole() {
       <SystemControls
         settings={settings}
         financials={MOCK_FINANCIALS}
-        onSave={setSettings}
+        onSave={saveSettings}
       />
 
       {decisions.length > 0 && (

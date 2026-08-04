@@ -129,7 +129,16 @@
       "Bash(curl -s \"http://localhost:3000/api/products/search?q=Dyson&limit=5\" -o ./tmp_search4.json)",
       "Bash(curl -s -o /dev/null -w 'status: %{http_code}\\\\n' 'http://localhost:3000/product/__TRACKED_VAR__?title=__TRACKED_VAR__&store=__TRACKED_VAR__')",
       "Bash(rm -f tmp_search*.json tmp_product*.html)",
-      "Bash(taskkill //F //PID 24836)"
+      "Bash(taskkill //F //PID 24836)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/api/cashback-rates)",
+      "Bash(curl -s http://localhost:3000/api/products?limit=1)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d['items'][0]['retailer'], d['items'][0]['pricing']['cashback'], d['items'][0]['pricing']['cashbackRate']\\)\")",
+      "Bash(curl -s -X POST http://localhost:3000/api/cashback-rates -H \"Content-Type: application/json\" -d '{\"rates\":{\"Best Buy\":3.0}}')",
+      "Bash(curl -s http://localhost:3000/product/apple-mba-m2-16-512)",
+      "Bash(curl -s -X POST http://localhost:3000/api/cashback-rates -H \"Content-Type: application/json\" -d '{\"rates\":{\"eBay\":5}}')",
+      "Bash(curl -s -X POST http://localhost:3000/api/cashback-rates -H \"Content-Type: application/json\" -d '{\"rates\":{\"Best Buy\":1.5}}')",
+      "Bash(pkill -f \"next dev\")"
     ]
   }
 }

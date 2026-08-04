@@ -7,12 +7,18 @@ import {
   type MerchantOffer,
   type RetailerId,
 } from "@/lib/catalog";
+import {
+  averageCashbackFraction,
+  computeCashback,
+  DEFAULT_CASHBACK_RATES,
+  rateForRetailer,
+} from "@/lib/cashback-rates";
 
-/** VIP wallet rate — every mock cashback figure is derived from it. */
-export const CASHBACK_RATE = 0.03;
+/** Average VIP wallet rate across the five stores — marketing copy only (vip-modal.tsx). */
+export const CASHBACK_RATE = averageCashbackFraction(DEFAULT_CASHBACK_RATES);
 
-const cashback = (price: number) =>
-  Math.round(price * CASHBACK_RATE * 100) / 100;
+const cashback = (price: number, retailer: RetailerId) =>
+  computeCashback(price, rateForRetailer(retailer));
 
 /**
  * Deterministic 90-day series — no RNG, so server and client render the same
@@ -1047,7 +1053,7 @@ function buildOffers(seed: Seed): MerchantOffer[] {
     warranty: defaultWarranty(seed.brand, seed.condition),
     price: seed.price,
     shipping: 0,
-    cashback: cashback(seed.price),
+    cashback: cashback(seed.price, seed.retailer),
     dealUrl: seed.dealUrl,
     stock: seed.inStock ?? "In stock",
     returns: "30-day returns",
@@ -1066,7 +1072,7 @@ function buildOffers(seed: Seed): MerchantOffer[] {
         warranty: c.warranty ?? defaultWarranty(seed.brand, condition),
         price,
         shipping: c.shipping ?? 0,
-        cashback: cashback(price),
+        cashback: cashback(price, c.merchant),
         dealUrl: RETAILERS[c.merchant].home,
         stock: c.stock ?? "In stock",
         returns: c.returns ?? "30-day returns",

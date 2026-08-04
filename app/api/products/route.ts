@@ -6,9 +6,10 @@ import {
   type ProductCategory,
   type RetailerId,
 } from "@/lib/catalog";
-import { MOCK_PRODUCTS, CASHBACK_RATE } from "@/lib/mock-products";
+import { MOCK_PRODUCTS } from "@/lib/mock-products";
 import { searchProducts } from "@/lib/search";
 import { CPC_MAX, CPC_MIN, validateImageSource } from "@/lib/mock-merchant";
+import { FALLBACK_CASHBACK_RATE, computeCashback, rateForRetailer } from "@/lib/cashback-rates";
 
 /**
  * GET /api/products
@@ -47,8 +48,6 @@ const VALID_SORTS = [
   "discount",
 ] as const;
 type Sort = (typeof VALID_SORTS)[number];
-
-const round2 = (n: number) => Math.round(n * 100) / 100;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -131,8 +130,8 @@ export async function GET(request: Request) {
           price: p.price,
           savings,
           savingsPercent: Math.round((savings / p.msrp) * 100),
-          cashback: round2(p.price * CASHBACK_RATE),
-          cashbackRate: CASHBACK_RATE,
+          cashback: computeCashback(p.price, rateForRetailer(p.retailer)),
+          cashbackRate: rateForRetailer(p.retailer),
         },
         trend: {
           windowDays: history.length,
@@ -303,8 +302,8 @@ export async function POST(request: Request) {
       price,
       savings,
       savingsPercent: Math.round((savings / msrp) * 100),
-      cashback: round2(price * CASHBACK_RATE),
-      cashbackRate: CASHBACK_RATE,
+      cashback: computeCashback(price, FALLBACK_CASHBACK_RATE),
+      cashbackRate: FALLBACK_CASHBACK_RATE,
     },
     boost: { enabled: boostEnabled, cpcBid },
   };

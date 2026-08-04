@@ -12,10 +12,12 @@ export function LiveBuyButton({
   productId,
   offer,
   offerCount,
+  cashback = 0,
 }: {
   productId: string;
   offer: Product;
   offerCount: number;
+  cashback?: number;
 }) {
   const href = safeExternalUrl(offer.url);
 
@@ -46,7 +48,7 @@ export function LiveBuyButton({
           condition: offer.condition ?? "not specified",
           price: offer.price,
           msrp: offer.originalPrice ?? offer.price,
-          cashback: 0,
+          cashback,
           dealUrl: href,
           offerRank: 1,
           offerCount,

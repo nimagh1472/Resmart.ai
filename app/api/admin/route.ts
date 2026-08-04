@@ -6,6 +6,14 @@ import {
   SETTING_BOUNDS,
   computeFinancials,
 } from "@/lib/mock-admin";
+import {
+  CASHBACK_RATE_BOUNDS,
+  CASHBACK_STORES,
+  getCashbackRates,
+  isValidCashbackRate,
+  setCashbackRates,
+  type CashbackRates,
+} from "@/lib/cashback-rates";
 
 /**
  * Admin API. Every method requires an admin credential — see lib/admin-auth.
@@ -52,7 +60,7 @@ export async function GET(request: Request) {
       rates: {
         commissionRate: MOCK_FINANCIALS.recordedCommissionRate,
         vipFee: MOCK_FINANCIALS.recordedVipFee,
-        cashbackRate: MOCK_FINANCIALS.recordedCashbackRate,
+        cashbackRates: getCashbackRates(),
       },
     });
   }
@@ -86,7 +94,7 @@ export async function GET(request: Request) {
 
   const { data: settings } = await supabase
     .from("platform_settings")
-    .select("vip_fee_cents, cashback_rate, default_commission_rate")
+    .select("vip_fee_cents, cashback_rates, default_commission_rate")
     .single();
 
   // The DB works in cents; the API surface is dollars.
@@ -113,7 +121,7 @@ export async function GET(request: Request) {
     settings: settings
       ? {
           vipFee: toUsd(settings.vip_fee_cents),
-          cashbackRate: Number(settings.cashback_rate),
+          cashbackRates: settings.cashback_rates as CashbackRates,
           commissionRate: Number(settings.default_commission_rate),
         }
       : null,
@@ -130,7 +138,7 @@ type Body = {
   reason?: string;
   settings?: {
     vipFee?: number;
-    cashbackRate?: number;
+    cashbackRates?: Partial<CashbackRates>;
     commissionRate?: number;
   };
 };
@@ -311,8 +319,19 @@ async function updateSettings(body: Body, actor: AdminActor) {
   };
 
   inRange(patch.vipFee, SETTING_BOUNDS.vipFee, "vipFee");
-  inRange(patch.cashbackRate, SETTING_BOUNDS.cashbackRate, "cashbackRate");
   inRange(patch.commissionRate, SETTING_BOUNDS.commissionRate, "commissionRate");
+
+  if (patch.cashbackRates) {
+    for (const store of CASHBACK_STORES) {
+      if (!(store in patch.cashbackRates)) continue;
+      const v = patch.cashbackRates[store];
+      if (!isValidCashbackRate(v)) {
+        errors.push(
+          `cashbackRates.${store} must be between ${CASHBACK_RATE_BOUNDS.min}% and ${CASHBACK_RATE_BOUNDS.max}%.`,
+        );
+      }
+    }
+  }
 
   if (errors.length > 0) {
     return NextResponse.json(
@@ -325,7 +344,7 @@ async function updateSettings(body: Body, actor: AdminActor) {
 
   const { data: current, error: readError } = await supabase
     .from("platform_settings")
-    .select("vip_fee_cents, cashback_rate, default_commission_rate")
+    .select("vip_fee_cents, cashback_rates, default_commission_rate")
     .eq("id", true)
     .single();
 
@@ -336,22 +355,30 @@ async function updateSettings(body: Body, actor: AdminActor) {
     );
   }
 
+  const currentCashbackRates = current.cashback_rates as CashbackRates;
+  const nextCashbackRates: CashbackRates = {
+    ...currentCashbackRates,
+    ...patch.cashbackRates,
+  };
+  const maxCashbackFraction =
+    Math.max(...CASHBACK_STORES.map((s) => nextCashbackRates[s])) / 100;
+
   const next = {
     vip_fee_cents:
       patch.vipFee !== undefined
         ? round(patch.vipFee * 100)
         : current.vip_fee_cents,
-    cashback_rate: patch.cashbackRate ?? Number(current.cashback_rate),
+    cashback_rates: nextCashbackRates,
     default_commission_rate:
       patch.commissionRate ?? Number(current.default_commission_rate),
   };
 
-  if (next.cashback_rate > next.default_commission_rate) {
+  if (maxCashbackFraction > next.default_commission_rate) {
     return NextResponse.json(
       {
         error: "invalid_request",
         message:
-          "cashbackRate cannot exceed commissionRate — every sale would pay out more than it earns.",
+          "cashbackRates cannot exceed commissionRate — every sale would pay out more than it earns.",
       },
       { status: 422 },
     );
@@ -365,7 +392,7 @@ async function updateSettings(body: Body, actor: AdminActor) {
       updated_at: new Date().toISOString(),
     })
     .eq("id", true)
-    .select("vip_fee_cents, cashback_rate, default_commission_rate, updated_at")
+    .select("vip_fee_cents, cashback_rates, default_commission_rate, updated_at")
     .single();
 
   if (writeError || !saved) {
@@ -375,18 +402,28 @@ async function updateSettings(body: Body, actor: AdminActor) {
     );
   }
 
+  // Keeps product/comparison pages (which read the in-memory store directly)
+  // consistent with what was just persisted to Supabase.
+  setCashbackRates(saved.cashback_rates as CashbackRates);
+
   // Append-only audit of what actually changed.
-  const audit = (
-    [
-      ["vip_fee_cents", current.vip_fee_cents, saved.vip_fee_cents],
-      ["cashback_rate", Number(current.cashback_rate), Number(saved.cashback_rate)],
-      [
-        "default_commission_rate",
-        Number(current.default_commission_rate),
-        Number(saved.default_commission_rate),
+  const savedCashbackRates = saved.cashback_rates as CashbackRates;
+  const changes: Array<[string, number, number]> = [
+    ["vip_fee_cents", current.vip_fee_cents, saved.vip_fee_cents],
+    ...CASHBACK_STORES.map(
+      (s): [string, number, number] => [
+        `cashback_rate_${s}`,
+        currentCashbackRates[s],
+        savedCashbackRates[s],
       ],
-    ] as const
-  )
+    ),
+    [
+      "default_commission_rate",
+      Number(current.default_commission_rate),
+      Number(saved.default_commission_rate),
+    ],
+  ];
+  const audit = changes
     .filter(([, oldV, newV]) => oldV !== newV)
     .map(([field, oldV, newV]) => ({
       changed_by: actor.kind === "user" ? actor.id : null,
@@ -402,7 +439,7 @@ async function updateSettings(body: Body, actor: AdminActor) {
     changed: audit.map((a) => a.field),
     settings: {
       vipFee: saved.vip_fee_cents / 100,
-      cashbackRate: Number(saved.cashback_rate),
+      cashbackRates: savedCashbackRates,
       commissionRate: Number(saved.default_commission_rate),
       updatedAt: saved.updated_at,
     },
