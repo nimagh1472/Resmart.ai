@@ -10,6 +10,8 @@ const nextConfig = {
       { protocol: "https", hostname: "m.media-amazon.com" }, // Amazon Warehouse
       { protocol: "https", hostname: "target.scene7.com" }, // Target
       { protocol: "https", hostname: "targetimg1.targetstatic.com" }, // Target
+      { protocol: "https", hostname: "*.googleusercontent.com" }, // Google Custom Search
+      { protocol: "https", hostname: "encrypted-tbn0.gstatic.com" }, // Google Custom Search
     ],
   },
 };

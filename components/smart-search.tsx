@@ -10,6 +10,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import {
   ArrowRight,
   ImageUp,
@@ -20,13 +21,19 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge, ConditionBadge } from "@/components/ui/badge";
-import { VisionAiModal } from "@/components/vision-ai-modal";
 import { productHref, type Product } from "@/components/ProductCard";
 import { CATEGORY_LABELS, MOCK_PRODUCTS } from "@/lib/mock-products";
 import { RETAILERS } from "@/lib/catalog";
 import { searchProducts } from "@/lib/search";
 import { buildAiMatchOffers, inferProduct } from "@/lib/product-inference";
 import { cn, formatCurrency } from "@/lib/utils";
+
+// Camera/upload UI is only needed once the shopper opens it, so it's split
+// out of the homepage's initial bundle.
+const VisionAiModal = dynamic(
+  () => import("@/components/vision-ai-modal").then((m) => m.VisionAiModal),
+  { ssr: false },
+);
 
 /**
  * One-click queries under the search bar. `label` is the shopper-facing intent

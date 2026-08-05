@@ -3,8 +3,16 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronRight, Package, TrendingDown, Wallet } from "lucide-react";
+import {
+  ChevronRight,
+  ExternalLink,
+  MapPin,
+  Package,
+  TrendingDown,
+  Wallet,
+} from "lucide-react";
 import { CONDITIONS, ConditionBadge } from "@/components/ui/badge";
+import { Modal } from "@/components/ui/modal";
 import { buttonStyles } from "@/components/ui/button-styles";
 import {
   RETAILERS as RETAILER_INFO,
@@ -59,6 +67,12 @@ export type Product = {
   inStock?: string;
   /** Every merchant listing for this item, already sorted best value first. */
   offers: MerchantOffer[];
+  /** How a merchant-submitted product can be fulfilled, if at all. */
+  fulfillmentType?: "online" | "instore" | "both";
+  /** Off-platform purchase link, shown when `fulfillmentType` allows online. */
+  externalUrl?: string;
+  /** Pickup location, shown when `fulfillmentType` allows in-store. */
+  storeAddress?: string;
 };
 
 /** Canonical path for a product's comparison page. */
@@ -82,6 +96,7 @@ export function ProductCard({
   className,
 }: ProductCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
+  const [storeModalOpen, setStoreModalOpen] = useState(false);
 
   const {
     brand,
@@ -95,7 +110,17 @@ export function ProductCard({
     priceHistory,
     inStock,
     offers,
+    fulfillmentType,
+    externalUrl,
+    storeAddress,
   } = product;
+
+  const canBuyOnline =
+    (fulfillmentType === "online" || fulfillmentType === "both") &&
+    Boolean(externalUrl);
+  const canBuyInStore =
+    (fulfillmentType === "instore" || fulfillmentType === "both") &&
+    Boolean(storeAddress);
 
   const savings = msrp - price;
   const savingsPct = msrp > 0 ? Math.round((savings / msrp) * 100) : 0;
@@ -283,7 +308,54 @@ export function ProductCard({
           </span>
           <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
         </Link>
+
+        {/* Merchant fulfillment ------------------------------------ */}
+        {(canBuyOnline || canBuyInStore) && (
+          <div className="flex flex-wrap gap-2">
+            {canBuyOnline && (
+              <a
+                href={externalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={buttonStyles({
+                  variant: "secondary",
+                  className: "flex-1",
+                })}
+              >
+                Buy Online
+                <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              </a>
+            )}
+            {canBuyInStore && (
+              <button
+                type="button"
+                onClick={() => setStoreModalOpen(true)}
+                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-surface-border bg-surface px-3 py-2 text-xs font-medium text-muted transition hover:border-accent/40 hover:text-foreground"
+              >
+                <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                Buy In-Store
+              </button>
+            )}
+          </div>
+        )}
       </div>
+
+      {canBuyInStore && (
+        <Modal
+          open={storeModalOpen}
+          onClose={() => setStoreModalOpen(false)}
+          title="Available in-store"
+          description={title}
+        >
+          <div className="flex items-start gap-3 p-5">
+            <MapPin
+              className="mt-0.5 h-4 w-4 shrink-0 text-accent-strong"
+              aria-hidden="true"
+            />
+            <p className="text-sm text-foreground">{storeAddress}</p>
+          </div>
+        </Modal>
+      )}
     </article>
   );
 }
