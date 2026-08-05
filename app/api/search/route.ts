@@ -112,15 +112,18 @@ async function getWebResults(q: string) {
     return { data: [] as SearchResult[], error: "search_not_configured", status: 503 };
   }
 
-  const url = new URL("https://www.googleapis.com/customsearch/v1");
-  url.searchParams.set("key", apiKey);
-  url.searchParams.set("cx", engineId);
-  url.searchParams.set("q", q);
+  const url =
+    `https://www.googleapis.com/customsearch/v1` +
+    `?key=${encodeURIComponent(apiKey)}` +
+    `&cx=${encodeURIComponent(engineId)}` +
+    `&q=${encodeURIComponent(q)}`;
 
   try {
     dailyCount += 1;
-    const res = await fetch(url.toString());
+    const res = await fetch(url);
     if (!res.ok) {
+      const errorBody = await res.json().catch(() => null);
+      console.error("Google Search Error:", res.status, JSON.stringify(errorBody));
       return { data: [] as SearchResult[], error: "upstream_error", status: 502 };
     }
 
@@ -135,7 +138,8 @@ async function getWebResults(q: string) {
 
     cache.set(q, { data, expiresAt: Date.now() + DAY_MS });
     return { data, error: null as string | null, status: 200 };
-  } catch {
+  } catch (err) {
+    console.error("Google Search fetch failed:", err);
     return { data: [] as SearchResult[], error: "fetch_failed", status: 502 };
   }
 }
