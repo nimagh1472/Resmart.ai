@@ -118,6 +118,15 @@ async function getWebResults(q: string) {
     `&cx=${encodeURIComponent(engineId)}` +
     `&q=${encodeURIComponent(q)}`;
 
+  const maskedKey =
+    apiKey.length > 8 ? `${apiKey.slice(0, 4)}...${apiKey.slice(-4)}` : "****";
+  console.log(
+    "Google Search request:",
+    `key=${maskedKey}`,
+    `cx=${engineId}`,
+    `q=${q}`,
+  );
+
   try {
     dailyCount += 1;
     const res = await fetch(url);
@@ -158,16 +167,15 @@ export async function GET(request: Request) {
   const internalResults = getMerchantResults(q);
   const web = await getWebResults(q);
 
-  return NextResponse.json(
-    {
-      source: "combined",
-      remainingDailyQuota: getRemainingQuota(),
-      ...(web.error ? { webError: web.error } : {}),
-      internalResults,
-      webResults: web.data,
-      // Internal ReSmart merchants take priority over the open web.
-      data: [...internalResults, ...web.data],
-    },
-    { status: web.error && internalResults.length === 0 ? web.status : 200 },
-  );
+  // Google outages (403/quota/misconfiguration) never fail the request — they
+  // degrade to an empty webResults array so internal results still return 200.
+  return NextResponse.json({
+    source: "combined",
+    remainingDailyQuota: getRemainingQuota(),
+    ...(web.error ? { webError: web.error } : {}),
+    internalResults,
+    webResults: web.data,
+    // Internal ReSmart merchants take priority over the open web.
+    data: [...internalResults, ...web.data],
+  });
 }
