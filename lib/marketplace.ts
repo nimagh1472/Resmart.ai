@@ -105,6 +105,59 @@ function buildConditionQuery(query: string): string {
   return `${query} ${CONDITION_QUERY_SUFFIX}`;
 }
 
+// ---------------------------------------------------------------------------
+// Query sanitization — queries are often copy-pasted retailer titles, e.g.
+// `Restored Sony 3005718 PlayStation 5 Console (Refurbished), Size: No
+// Membership, Black`. Serper Shopping matches poorly (often zero results)
+// against labeled attribute noise ("Size: No Membership") and long internal
+// SKU/UPC numbers, so both are stripped before every outbound query. If the
+// cleaned query still comes back empty, `simplifySearchQuery` trims it down
+// to just its first few core tokens (the brand/product name) and the search
+// is retried once — `buildConditionQuery`'s OR clause re-applies the
+// pre-owned constraint on that retry too, so condition targeting never gets
+// lost in the fallback.
+// ---------------------------------------------------------------------------
+
+/** Attribute labels retailers commonly tack onto a title as "Label: value" noise. */
+const ATTRIBUTE_LABEL_RE =
+  /\b(?:size|color|colour|style|capacity|storage|condition|network|carrier|membership|material|pattern|flavor|scent|length|width|height|weight|type)\s*:\s*[^,]*/gi;
+
+/** Long digit runs (SKUs, UPCs, internal model numbers) that don't help — and often hurt — a shopping match. */
+const LONG_NUMERIC_ID_RE = /\b\d{5,}\b/g;
+
+/**
+ * Strips retailer-noise from a raw (often copy-pasted) query: labeled
+ * attribute pairs, long SKU/UPC-style numbers, and parenthesis characters
+ * around condition words (the words are kept — the parens themselves confuse
+ * the matcher more than the words inside them).
+ */
+export function sanitizeSearchQuery(rawQuery: string): string {
+  return rawQuery
+    .replace(ATTRIBUTE_LABEL_RE, " ")
+    .replace(LONG_NUMERIC_ID_RE, " ")
+    .replace(/[()]/g, " ")
+    .replace(/,/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+/** Cap on how many leading tokens survive into the simplified fallback query. */
+const SIMPLIFIED_QUERY_MAX_TOKENS = 4;
+
+/**
+ * Falls back further than `sanitizeSearchQuery` when even the cleaned query
+ * returns nothing: keeps only the first few non-filler tokens (the
+ * brand/product core, e.g. "Sony PlayStation 5"), dropping condition and
+ * marketing filler words via the same stopword list `groupListings` uses to
+ * compare titles.
+ */
+function simplifySearchQuery(query: string): string {
+  const tokens = query
+    .split(/\s+/)
+    .filter((token) => token.length > 0 && !GROUP_STOPWORDS.has(token.toLowerCase()));
+  return tokens.slice(0, SIMPLIFIED_QUERY_MAX_TOKENS).join(" ");
+}
+
 /** The only condition labels ReSmart ever shows on a listing card. */
 export type Condition = "Open Box" | "Refurbished" | "Like New" | "Pre-Owned";
 
@@ -123,10 +176,8 @@ function detectCondition(title: string, rawCondition?: string): Condition | null
   return null;
 }
 
-async function fetchShoppingResults(query: string): Promise<Product[]> {
-  const cached = shoppingCache.get(query);
-  if (cached && cached.expiresAt > Date.now()) return cached.items;
-
+/** Runs a single Serper Shopping call for an already-cleaned query and normalizes the response. */
+async function runShoppingQuery(query: string): Promise<Product[]> {
   const res = await fetch("https://google.serper.dev/shopping", {
     method: "POST",
     headers: {
@@ -166,7 +217,27 @@ async function fetchShoppingResults(query: string): Promise<Product[]> {
     });
   });
 
-  shoppingCache.set(query, { items, expiresAt: Date.now() + CACHE_MS });
+  return items;
+}
+
+async function fetchShoppingResults(rawQuery: string): Promise<Product[]> {
+  const cached = shoppingCache.get(rawQuery);
+  if (cached && cached.expiresAt > Date.now()) return cached.items;
+
+  const cleaned = sanitizeSearchQuery(rawQuery) || rawQuery;
+  let items = await runShoppingQuery(cleaned);
+
+  // The cleaned query can still be too specific to match anything (rare
+  // model numbers, uncommon phrasing) — retry once with just its core
+  // brand/product tokens rather than surfacing an empty comparison page.
+  if (items.length === 0) {
+    const simplified = simplifySearchQuery(cleaned);
+    if (simplified && simplified.toLowerCase() !== cleaned.toLowerCase()) {
+      items = await runShoppingQuery(simplified);
+    }
+  }
+
+  shoppingCache.set(rawQuery, { items, expiresAt: Date.now() + CACHE_MS });
   return items;
 }
 
