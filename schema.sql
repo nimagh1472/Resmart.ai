@@ -141,6 +141,9 @@ create table platform_settings (
     default '{"eBay":2.0,"Amazon":1.0,"Best Buy":1.5,"Walmart":1.0,"Target":1.0}'::jsonb,
   default_commission_rate numeric(6, 4) not null default 0.1000
     check (default_commission_rate between 0.05 and 0.25),
+  -- Flat merchant membership fee, billed monthly regardless of sales volume.
+  merchant_subscription_fee_cents integer not null default 7999
+    check (merchant_subscription_fee_cents between 1999 and 19999),
   updated_by            uuid references users (id) on delete set null,
   updated_at            timestamptz   not null default now()
 );

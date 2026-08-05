@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowRight,
   BellRing,
   CheckCircle2,
   Crown,
@@ -11,15 +10,17 @@ import {
   Lock,
   ScanSearch,
   ShieldCheck,
-  Wallet,
+  Sparkles,
 } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { CASHBACK_RATE } from "@/lib/mock-products";
 import { track } from "@/lib/analytics";
-import { cn, formatCurrency } from "@/lib/utils";
-import { VIP_PRICE } from "@/components/vip-modal";
+import { formatCurrency } from "@/lib/utils";
+import {
+  VIP_INTRO_MONTHS,
+  VIP_INTRO_PRICE,
+  VIP_STANDARD_PRICE,
+} from "@/components/vip-modal";
 
 const FEATURES = [
   {
@@ -35,10 +36,10 @@ const FEATURES = [
       "Get texted the moment an open-box unit hits your target price.",
   },
   {
-    icon: Wallet,
-    title: "3% Cashback Wallet",
+    icon: Sparkles,
+    title: "VIP-Only Early Access",
     description:
-      "Earn 3% back on every purchase, withdrawable to your bank any time.",
+      "See newly listed open-box and refurbished drops before they go public.",
   },
 ];
 
@@ -52,12 +53,6 @@ export default function VipModal({
   onClose: () => void;
 }) {
   const [phase, setPhase] = useState<Phase>("overview");
-  const [items, setItems] = useState(1);
-  const [avgPrice, setAvgPrice] = useState(1000);
-
-  const monthlyCashback = items * avgPrice * CASHBACK_RATE;
-  const net = monthlyCashback - VIP_PRICE;
-  const paysForItself = monthlyCashback >= VIP_PRICE;
 
   // Reset once the close animation has played out.
   useEffect(() => {
@@ -81,7 +76,7 @@ export default function VipModal({
       open={open}
       onClose={onClose}
       title="ReSmart VIP"
-      description={`${formatCurrency(VIP_PRICE)}/mo · cancel anytime`}
+      description={`${formatCurrency(VIP_INTRO_PRICE)}/mo for ${VIP_INTRO_MONTHS} months, then ${formatCurrency(VIP_STANDARD_PRICE)}/mo · cancel anytime`}
       className="sm:max-w-xl"
       dismissOnBackdrop={phase !== "processing"}
     >
@@ -97,84 +92,29 @@ export default function VipModal({
               transition={{ duration: 0.18 }}
               className="flex flex-col gap-6"
             >
-              {/* Value calculator */}
+              {/* Pricing */}
               <div className="rounded-2xl border border-surface-border bg-canvas p-4">
-                <div className="mb-4 flex items-center justify-between gap-2">
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                    Does it pay for itself?
-                  </p>
-                  {paysForItself && (
-                    <Badge tone="emerald" size="sm">
-                      Pays for itself
-                    </Badge>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-4">
-                  <Slider
-                    label="Open-box purchases / month"
-                    value={items}
-                    min={1}
-                    max={5}
-                    step={1}
-                    onChange={setItems}
-                    display={`${items} item${items > 1 ? "s" : ""}`}
-                  />
-                  <Slider
-                    label="Average item price"
-                    value={avgPrice}
-                    min={200}
-                    max={3000}
-                    step={50}
-                    onChange={setAvgPrice}
-                    display={formatCurrency(avgPrice)}
-                  />
-                </div>
-
-                {/* Buy → earn → net */}
-                <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-stretch">
-                  <MathStep
-                    label="You buy"
-                    value={`${items}× ${formatCurrency(avgPrice)}`}
-                  />
-                  <StepArrow />
-                  <MathStep
-                    label="Cashback"
-                    value={formatCurrency(monthlyCashback, { cents: true })}
-                    tone="vip"
-                  />
-                  <StepArrow />
-                  <MathStep
-                    label={net >= 0 ? "Net gain / mo" : "Net cost / mo"}
-                    value={`${net >= 0 ? "+" : "−"}${formatCurrency(
-                      Math.abs(net),
-                      { cents: true },
-                    )}`}
-                    tone={net >= 0 ? "vip" : "muted"}
-                  />
-                </div>
-
-                <p className="mt-3 text-center text-xs text-muted-foreground">
-                  {paysForItself ? (
-                    <>
-                      One {formatCurrency(avgPrice)} open-box buy returns{" "}
-                      <span className="font-mono text-vip-strong">
-                        {formatCurrency(avgPrice * CASHBACK_RATE, {
-                          cents: true,
-                        })}
-                      </span>{" "}
-                      — the subscription pays for itself instantly.
-                    </>
-                  ) : (
-                    <>
-                      Spend{" "}
-                      <span className="font-mono text-accent-strong">
-                        {formatCurrency(Math.ceil(VIP_PRICE / CASHBACK_RATE))}
-                      </span>{" "}
-                      a month to break even on the subscription.
-                    </>
-                  )}
+                <p className="mb-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Your plan
                 </p>
+
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-vip/25 bg-vip/[0.06] p-4">
+                  <div>
+                    <p className="text-sm font-medium">
+                      First {VIP_INTRO_MONTHS} months
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Then {formatCurrency(VIP_STANDARD_PRICE)}/mo · cancel
+                      anytime
+                    </p>
+                  </div>
+                  <p className="font-mono text-2xl font-semibold tabular-nums text-vip-strong">
+                    {formatCurrency(VIP_INTRO_PRICE)}
+                    <span className="text-sm font-normal text-muted-foreground">
+                      /mo
+                    </span>
+                  </p>
+                </div>
               </div>
 
               {/* Features */}
@@ -202,12 +142,12 @@ export default function VipModal({
                 onClick={() => {
                   track({
                     name: "vip_checkout_started",
-                    payload: { items, avgPrice, monthlyCashback },
+                    payload: { introPrice: VIP_INTRO_PRICE },
                   });
                   setPhase("checkout");
                 }}
               >
-                Go VIP — {formatCurrency(VIP_PRICE)}/mo
+                Go VIP — {formatCurrency(VIP_INTRO_PRICE)}/mo
               </Button>
             </motion.div>
           )}
@@ -231,11 +171,12 @@ export default function VipModal({
                 <div>
                   <p className="font-heading font-medium">ReSmart VIP</p>
                   <p className="text-xs text-muted-foreground">
-                    Monthly · cancel anytime
+                    First {VIP_INTRO_MONTHS} months, then{" "}
+                    {formatCurrency(VIP_STANDARD_PRICE)}/mo
                   </p>
                 </div>
                 <p className="font-mono text-xl font-semibold tabular-nums">
-                  {formatCurrency(VIP_PRICE)}
+                  {formatCurrency(VIP_INTRO_PRICE)}
                 </p>
               </div>
 
@@ -249,7 +190,7 @@ export default function VipModal({
                   leftIcon={<Lock className="h-4 w-4" />}
                   onClick={() => setPhase("processing")}
                 >
-                  Pay {formatCurrency(VIP_PRICE)}
+                  Pay {formatCurrency(VIP_INTRO_PRICE)} today
                 </Button>
                 <Button
                   variant="ghost"
@@ -303,21 +244,25 @@ export default function VipModal({
                   You&apos;re VIP.
                 </h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  3% cashback is now active on every purchase.
+                  Unlimited AI Vision search and SMS drop alerts are active now.
                 </p>
               </div>
 
               <div className="w-full rounded-xl border border-vip/25 bg-vip/[0.06] p-4">
                 <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Projected first-month cashback
+                  Billing schedule
                 </p>
-                <p className="mt-1 font-mono text-3xl font-semibold tabular-nums text-vip-strong">
-                  {formatCurrency(monthlyCashback, { cents: true })}
+                <p className="mt-1 text-sm">
+                  <span className="font-mono text-lg font-semibold tabular-nums text-vip-strong">
+                    {formatCurrency(VIP_INTRO_PRICE)}/mo
+                  </span>{" "}
+                  for {VIP_INTRO_MONTHS} months, then{" "}
+                  {formatCurrency(VIP_STANDARD_PRICE)}/mo
                 </p>
               </div>
 
               <Button fullWidth onClick={onClose}>
-                Start saving
+                Start exploring
               </Button>
             </motion.div>
           )}
@@ -328,80 +273,6 @@ export default function VipModal({
 }
 
 /* ------------------------------------------------------------------ */
-
-function Slider({
-  label,
-  value,
-  min,
-  max,
-  step,
-  onChange,
-  display,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  onChange: (v: number) => void;
-  display: string;
-}) {
-  return (
-    <label className="flex flex-col gap-1.5">
-      <span className="flex items-baseline justify-between text-xs text-muted">
-        {label}
-        <span className="font-mono tabular-nums text-foreground">
-          {display}
-        </span>
-      </span>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-surface-raised accent-vip"
-      />
-    </label>
-  );
-}
-
-function MathStep({
-  label,
-  value,
-  tone = "default",
-}: {
-  label: string;
-  value: string;
-  tone?: "default" | "vip" | "muted";
-}) {
-  return (
-    <div className="flex-1 rounded-xl border border-surface-border bg-surface px-3 py-2.5 text-center">
-      <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-        {label}
-      </p>
-      <p
-        className={cn(
-          "mt-0.5 font-mono text-sm font-semibold tabular-nums",
-          tone === "vip" && "text-vip-strong",
-          tone === "muted" && "text-muted-foreground",
-          tone === "default" && "text-foreground",
-        )}
-      >
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function StepArrow() {
-  return (
-    <div className="flex items-center justify-center text-muted-foreground">
-      <ArrowRight className="h-4 w-4 rotate-90 sm:rotate-0" aria-hidden="true" />
-    </div>
-  );
-}
 
 /** Cosmetic card form. Deliberately inert — nothing here is submitted. */
 function MockCardForm() {

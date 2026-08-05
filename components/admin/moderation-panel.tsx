@@ -216,7 +216,7 @@ function UsersTable({
               </p>
             )}
 
-            <dl className="grid grid-cols-3 gap-3 rounded-xl border border-surface-border bg-canvas p-3">
+            <dl className="grid grid-cols-2 gap-3 rounded-xl border border-surface-border bg-canvas p-3">
               <div>
                 <dt className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
                   Joined
@@ -231,14 +231,6 @@ function UsersTable({
                 </dt>
                 <dd className="font-mono text-xs tabular-nums">
                   {formatCurrency(u.lifetimeSpend)}
-                </dd>
-              </div>
-              <div>
-                <dt className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-                  Cashback
-                </dt>
-                <dd className="font-mono text-xs tabular-nums text-vip-strong">
-                  {formatCurrency(u.cashbackEarned)}
                 </dd>
               </div>
             </dl>
@@ -266,7 +258,6 @@ function UsersTable({
               ["User", "left"],
               ["Joined", "right"],
               ["Lifetime spend", "right"],
-              ["Cashback earned", "right"],
               ["VIP badge", "right"],
               ["Account", "right"],
             ].map(([label, align]) => (
@@ -324,9 +315,6 @@ function UsersTable({
               </td>
               <td className="px-5 py-3.5 text-right font-mono tabular-nums text-muted">
                 {formatCurrency(u.lifetimeSpend, { cents: true })}
-              </td>
-              <td className="px-5 py-3.5 text-right font-mono tabular-nums text-vip-strong">
-                {formatCurrency(u.cashbackEarned, { cents: true })}
               </td>
 
               <td className="px-5 py-3.5">

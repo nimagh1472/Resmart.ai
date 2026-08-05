@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
   COMMISSION_RATE,
+  SUBSCRIPTION_FEE,
   type MerchantWallet,
 } from "@/lib/mock-merchant";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
@@ -145,6 +146,10 @@ export function WalletCard({
 
       <div className="flex flex-col gap-1.5 text-xs text-muted-foreground">
         <Row
+          label="Membership"
+          value={`${formatCurrency(SUBSCRIPTION_FEE, { cents: true })}/mo`}
+        />
+        <Row
           label="Commission settled to date"
           value={formatCurrency(commissionsSettled, { cents: true })}
         />
@@ -160,9 +165,9 @@ export function WalletCard({
       </div>
 
       <p className="rounded-lg bg-surface-raised/60 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
-        Commission is charged only on completed sales. CPC boost is billed
-        separately from the ad spend balance above — the two never draw from
-        the same funds.
+        Membership is billed monthly regardless of sales volume. Commission is
+        charged only on completed sales. CPC boost is billed separately from
+        the ad spend balance above — the two never draw from the same funds.
       </p>
     </section>
   );

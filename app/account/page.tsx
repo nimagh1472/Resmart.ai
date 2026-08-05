@@ -1,7 +1,6 @@
 ﻿import type { Metadata } from "next";
 import { Navbar } from "@/components/navbar";
 import { AccountHeader } from "@/components/account/account-header";
-import { AccountWallet } from "@/components/account/account-wallet";
 import { AccountTabs } from "@/components/account/account-tabs";
 import { SubscriptionSection } from "@/components/account/subscription-section";
 import { MOCK_USER } from "@/lib/mock-account";
@@ -9,7 +8,7 @@ import { MOCK_USER } from "@/lib/mock-account";
 export const metadata: Metadata = {
   title: "Your Account",
   description:
-    "Manage your VIP membership, cashback wallet, saved deals, and AI Vision history.",
+    "Manage your VIP membership, saved deals, and AI Vision history.",
 };
 
 export default function AccountPage() {
@@ -26,13 +25,12 @@ export default function AccountPage() {
             </div>
 
             <div className="order-1 flex flex-col gap-6 lg:order-2">
-              <AccountWallet />
               <SubscriptionSection user={MOCK_USER} />
             </div>
           </div>
 
           <p className="text-center text-[11px] text-muted-foreground">
-            Demo data. Wallet balance, alerts, and saved items reset on reload.
+            Demo data. Alerts and saved items reset on reload.
           </p>
         </div>
       </main>

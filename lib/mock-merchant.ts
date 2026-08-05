@@ -5,6 +5,9 @@ import type { MerchantKyc } from "@/lib/kyc";
 /* Monetization constants                                              */
 /* ------------------------------------------------------------------ */
 
+/** Flat monthly membership fee, billed regardless of sales volume. */
+export const SUBSCRIPTION_FEE = 79.99;
+
 /** Flat platform commission taken on completed sales. */
 export const COMMISSION_RATE = 0.1;
 

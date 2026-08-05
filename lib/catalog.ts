@@ -24,8 +24,9 @@ export type ProductCategory =
   | "tvs"
   | "appliances";
 
-/** ReSmart only surfaces graded, warranty-backed stock. */
+/** ReSmart surfaces graded, warranty-backed stock — open-box, refurbished, and like-new — alongside sealed brand-new units. */
 export type CardCondition =
+  | "brand-new"
   | "open-box-excellent"
   | "certified-refurbished"
   | "like-new";
@@ -84,6 +85,11 @@ export const CONDITIONS_API: Record<
   CardCondition,
   { label: string; warranty: string; description: string }
 > = {
+  "brand-new": {
+    label: "Brand New",
+    warranty: "Full manufacturer warranty",
+    description: "Factory-sealed, unopened, never used.",
+  },
   "open-box-excellent": {
     label: "Open-Box Excellent",
     warranty: "90-day retailer warranty",
@@ -116,12 +122,10 @@ export type MerchantOffer = {
   condition: CardCondition;
   /** Coverage as the merchant states it, e.g. "1-Year Apple Warranty". */
   warranty: string;
-  /** Sticker price, before shipping and before cashback. */
+  /** Sticker price, before shipping. */
   price: number;
   /** Flat shipping cost in dollars; 0 renders as "Free Shipping". */
   shipping: number;
-  /** VIP wallet credit earned on this offer, in dollars. */
-  cashback: number;
   /**
    * Outbound affiliate destination. Never rendered directly — pass it through
    * `safeExternalUrl` first, which drops anything that isn't http(s).
@@ -134,27 +138,25 @@ export type MerchantOffer = {
 };
 
 /**
- * What the buyer actually parts with: sticker + shipping, less the cashback
- * that lands back in their wallet. This — not the sticker price — is what the
- * comparison table ranks on, because a $10 cheaper listing with $15 shipping
- * is not a better deal.
+ * What the buyer actually parts with: sticker + shipping. This — not the
+ * sticker price alone — is what the comparison table ranks on, because a $10
+ * cheaper listing with $15 shipping is not a better deal.
  */
 export function offerNetCost(offer: MerchantOffer): number {
-  return Math.round((offer.price + offer.shipping - offer.cashback) * 100) / 100;
+  return Math.round((offer.price + offer.shipping) * 100) / 100;
 }
 
 /**
- * Best value first. Ties break on sticker price, then cashback, then merchant
- * id — a plain codepoint comparison rather than `localeCompare`, so the server
- * and the client can never disagree about the order and trip a hydration
- * mismatch. Returns a new array; the input is left alone.
+ * Best value first. Ties break on sticker price, then merchant id — a plain
+ * codepoint comparison rather than `localeCompare`, so the server and the
+ * client can never disagree about the order and trip a hydration mismatch.
+ * Returns a new array; the input is left alone.
  */
 export function sortOffersByValue(offers: MerchantOffer[]): MerchantOffer[] {
   return [...offers].sort(
     (a, b) =>
       offerNetCost(a) - offerNetCost(b) ||
       a.price - b.price ||
-      b.cashback - a.cashback ||
       (a.merchant < b.merchant ? -1 : a.merchant > b.merchant ? 1 : 0),
   );
 }
@@ -169,6 +171,8 @@ export function defaultWarranty(
   condition: CardCondition,
 ): string {
   switch (condition) {
+    case "brand-new":
+      return `Full ${brand} Manufacturer Warranty`;
     case "certified-refurbished":
       return `1-Year ${brand} Warranty`;
     case "like-new":

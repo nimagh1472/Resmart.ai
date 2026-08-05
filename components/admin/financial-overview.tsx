@@ -5,7 +5,7 @@ import {
   Crown,
   MousePointerClick,
   Percent,
-  Wallet,
+  Store,
 } from "lucide-react";
 import {
   computeFinancials,
@@ -69,15 +69,13 @@ export function FinancialOverview({
       tone: "accent" as const,
     },
     {
-      icon: Wallet,
-      label: "Cashback paid out",
-      value: `−${compact(f.cashbackPaidOut)}`,
-      exact: `−${formatCurrency(f.cashbackPaidOut)}`,
-      delta: deltas.cashback,
-      // A rise in cashback is a cost increase, so the arrow reads inverted.
-      invertDelta: true,
-      sub: `${(financials.recordedCashbackRate * 100).toFixed(2)}% of VIP-attributed GMV`,
-      tone: "amber" as const,
+      icon: Store,
+      label: "Merchant SaaS revenue",
+      value: compact(f.merchantSubscriptionRevenue),
+      exact: formatCurrency(f.merchantSubscriptionRevenue),
+      delta: deltas.merchantSubscription,
+      sub: `${financials.merchantSubscribers.toLocaleString("en-US")} merchants × ${formatCurrency(financials.recordedMerchantSubscriptionFee, { cents: true })}/mo`,
+      tone: "accent" as const,
     },
   ];
 
@@ -105,13 +103,12 @@ export function FinancialOverview({
                 "font-mono text-2xl font-semibold tabular-nums",
                 c.tone === "accent" && "text-accent-strong",
                 c.tone === "vip" && "text-vip-strong",
-                c.tone === "amber" && "text-amber-600",
                 c.tone === "default" && "text-foreground",
               )}
             >
               {c.value}
             </p>
-            <Delta value={c.delta} invert={c.invertDelta} />
+            <Delta value={c.delta} />
             <p className="text-[11px] leading-snug text-muted-foreground">
               {c.sub}
             </p>
@@ -119,7 +116,7 @@ export function FinancialOverview({
         ))}
       </div>
 
-      {/* Net roll-up: the four inflows minus cashback. */}
+      {/* Net roll-up: the four revenue streams summed. */}
       <div className="flex flex-col gap-3 rounded-2xl border border-surface-border bg-surface shadow-card p-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs tabular-nums text-muted-foreground">
           <span className="text-accent-strong">{compact(f.salesCommission)}</span>
@@ -127,8 +124,10 @@ export function FinancialOverview({
           <span className="text-vip-strong">{compact(f.vipRevenue)}</span>
           <span>+</span>
           <span className="text-accent-strong">{compact(financials.cpcAdRevenue)}</span>
-          <span>−</span>
-          <span className="text-amber-600">{compact(f.cashbackPaidOut)}</span>
+          <span>+</span>
+          <span className="text-accent-strong">
+            {compact(f.merchantSubscriptionRevenue)}
+          </span>
         </div>
         <div className="text-right">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">

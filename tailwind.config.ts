@@ -34,7 +34,7 @@ const config: Config = {
           muted: "#D1FAE5",
           soft: "#ECFDF5",
         },
-        // Success / VIP / Cashback — the same emerald family
+        // Success / VIP — the same emerald family
         vip: {
           DEFAULT: "#10B981",
           hover: "#059669",

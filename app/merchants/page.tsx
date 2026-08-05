@@ -12,7 +12,12 @@ import {
 } from "lucide-react";
 import { MerchantHeader } from "@/components/merchants/merchant-header";
 import { buttonStyles } from "@/components/ui/button-styles";
-import { COMMISSION_RATE, CPC_MAX, CPC_MIN } from "@/lib/mock-merchant";
+import {
+  COMMISSION_RATE,
+  CPC_MAX,
+  CPC_MIN,
+  SUBSCRIPTION_FEE,
+} from "@/lib/mock-merchant";
 import { formatCurrency } from "@/lib/utils";
 
 const COMMISSION_PCT = Math.round(COMMISSION_RATE * 100);
@@ -20,10 +25,11 @@ const CPC_RANGE = `${formatCurrency(CPC_MIN, { cents: true })}–${formatCurrenc
   CPC_MAX,
   { cents: true },
 )}`;
+const SUBSCRIPTION_PRICE = formatCurrency(SUBSCRIPTION_FEE, { cents: true });
 
 export const metadata: Metadata = {
   title: "Merchant Portal",
-  description: `Reach 80M+ high-intent open-box buyers. ${COMMISSION_PCT}% commission on completed sales, plus optional CPC boost — no listing fees.`,
+  description: `Reach 80M+ high-intent open-box buyers. ${SUBSCRIPTION_PRICE}/mo membership plus ${COMMISSION_PCT}% commission on completed sales, with an optional CPC boost.`,
 };
 
 const STATS = [
@@ -36,8 +42,8 @@ const STATS = [
 const BENEFITS = [
   {
     icon: Coins,
-    title: "Commission only on sales",
-    description: `A flat ${COMMISSION_PCT}% is taken when an item actually sells. No listing fees, no monthly minimum, nothing charged on inventory that sits.`,
+    title: "One flat membership",
+    description: `${SUBSCRIPTION_PRICE}/mo covers your storefront and listings, plus a flat ${COMMISSION_PCT}% commission taken only when an item actually sells.`,
   },
   {
     icon: MousePointerClick,
@@ -86,8 +92,8 @@ const STEPS = [
     body: "Title, condition, MSRP, open-box price, stock, and destination URL. Add listings manually or sync a feed.",
   },
   {
-    title: `Pay ${COMMISSION_PCT}% when it sells`,
-    body: `Commission is taken only on completed sales. Add a ${CPC_RANGE} CPC boost if you want priority ranking — that part is optional.`,
+    title: `Pay ${SUBSCRIPTION_PRICE}/mo + ${COMMISSION_PCT}% when it sells`,
+    body: `The membership keeps your storefront live; commission is taken only on completed sales. Add a ${CPC_RANGE} CPC boost if you want priority ranking — that part is optional.`,
   },
 ];
 
@@ -117,13 +123,15 @@ export default function MerchantsPage() {
                 80M+
               </span>{" "}
               High-Intent Open-Box Buyers.{" "}
-              <span className="text-accent-strong">Pay Only For Clicks.</span>
+              <span className="text-accent-strong">
+                Simple, Transparent Pricing.
+              </span>
             </h1>
 
             <p className="max-w-2xl text-balance text-base text-muted sm:text-lg">
               List your open-box and certified refurbished inventory where
-              buyers are already comparing it. No listing fees and no monthly
-              minimum — a flat {COMMISSION_PCT}% when an item sells, plus an
+              buyers are already comparing it. {SUBSCRIPTION_PRICE}/mo
+              membership, a flat {COMMISSION_PCT}% when an item sells, plus an
               optional CPC boost you control.
             </p>
 
@@ -197,7 +205,7 @@ export default function MerchantsPage() {
                 Pricing
               </span>
               <h2 className="text-balance text-2xl font-bold sm:text-3xl lg:text-4xl">
-                One flat commission. Boost only if you want to.
+                One membership, one commission. Boost only if you want to.
               </h2>
             </div>
 
@@ -218,24 +226,42 @@ export default function MerchantsPage() {
               ))}
             </ol>
 
-            {/* Two-part pricing: the base tier everyone pays, plus the
-                optional add-on. Shown side by side so neither reads as a
-                hidden fee discovered later. */}
-            <div className="mt-10 grid gap-4 md:grid-cols-2">
+            {/* Three-part pricing: the flat membership every merchant pays,
+                the commission taken on sales, and the optional CPC add-on.
+                Shown side by side so none reads as a hidden fee discovered
+                later. */}
+            <div className="mt-10 grid gap-4 md:grid-cols-3">
               <div className="flex flex-col gap-3 rounded-2xl border border-vip/30 bg-surface p-8">
                 <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-vip/25 bg-vip/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest text-vip-strong">
-                  <Coins className="h-3 w-3" aria-hidden="true" />
-                  Base — everyone
+                  <Wallet className="h-3 w-3" aria-hidden="true" />
+                  Membership — everyone
                 </span>
                 <p className="font-mono text-4xl font-semibold tabular-nums text-vip-strong">
+                  {SUBSCRIPTION_PRICE}
+                  <span className="ml-1 font-sans text-base font-normal text-muted-foreground">
+                    / mo
+                  </span>
+                </p>
+                <p className="text-sm leading-relaxed text-muted">
+                  Flat monthly fee to keep your storefront and listings live,
+                  regardless of sales volume.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3 rounded-2xl border border-surface-border bg-surface p-8">
+                <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-surface-border bg-canvas-soft px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest text-foreground">
+                  <Coins className="h-3 w-3" aria-hidden="true" />
+                  Commission — everyone
+                </span>
+                <p className="font-mono text-4xl font-semibold tabular-nums">
                   {COMMISSION_PCT}%
                   <span className="ml-1 font-sans text-base font-normal text-muted-foreground">
                     per completed sale
                   </span>
                 </p>
                 <p className="text-sm leading-relaxed text-muted">
-                  Charged only when an item sells. No listing fees, no monthly
-                  minimum, and nothing owed on inventory that doesn&apos;t move.
+                  Charged only when an item sells — nothing owed on inventory
+                  that doesn&apos;t move.
                 </p>
               </div>
 
@@ -260,8 +286,9 @@ export default function MerchantsPage() {
 
             <div className="mt-6 flex flex-col items-center gap-3 text-center">
               <p className="max-w-lg text-sm text-muted-foreground">
-                A boosted listing pays both: {COMMISSION_PCT}% when it sells,
-                plus your bid on each click it receives.
+                Every merchant pays {SUBSCRIPTION_PRICE}/mo plus{" "}
+                {COMMISSION_PCT}% when an item sells; a boosted listing also
+                pays your bid on each click it receives.
               </p>
               <Link
                 href="/merchants/dashboard"

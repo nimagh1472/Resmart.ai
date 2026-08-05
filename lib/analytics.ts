@@ -19,7 +19,6 @@ export type AffiliateClickPayload = {
   condition: string;
   price: number;
   msrp: number;
-  cashback: number;
   dealUrl: string;
   /** Where on the page the click originated, e.g. "product-card". */
   placement?: string;

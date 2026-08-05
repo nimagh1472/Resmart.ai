@@ -61,7 +61,6 @@ type ProjectedOffer = {
   condition: ProductCondition;
   price: number;
   shipping: number;
-  cashback: number;
   stock: string;
 };
 
@@ -612,9 +611,6 @@ function ResultPanel({
                 <div className="flex shrink-0 flex-col items-end">
                   <span className="font-mono text-lg font-medium tabular-nums">
                     {formatCurrency(offer.price)}
-                  </span>
-                  <span className="font-mono text-xs tabular-nums text-vip-strong">
-                    +{formatCurrency(offer.cashback, { cents: true })} back
                   </span>
                 </div>
               </motion.div>

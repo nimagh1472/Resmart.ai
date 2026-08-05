@@ -7,7 +7,6 @@ import {
   ShieldCheck,
   TrendingDown,
   Truck,
-  Wallet,
 } from "lucide-react";
 import { Navbar } from "@/components/navbar";
 import { LiveBuyButton } from "@/components/product/live-buy-button";
@@ -27,12 +26,6 @@ import {
 } from "@/lib/marketplace";
 import { estimatePriceTrend } from "@/lib/price-trend";
 import { normalizeCondition, STORE_INFO } from "@/lib/store-info";
-import {
-  applyLiveCashback,
-  computeCashback,
-  getCashbackRates,
-  rateForStore,
-} from "@/lib/cashback-rates";
 import { formatCurrency, safeDecodeURIComponent } from "@/lib/utils";
 
 /** Generic per-store reference data when a listing's store is somehow outside the known set. */
@@ -84,7 +77,7 @@ export function generateMetadata({ params, searchParams }: Params): Metadata {
 
   if (product) {
     const title = `${product.brand} ${product.model}`;
-    const description = `Compare ${product.offers.length} open-box and refurbished offers for the ${title}, from ${formatCurrency(product.price)}. Warranty, shipping and VIP cashback side by side.`;
+    const description = `Compare ${product.offers.length} open-box and refurbished offers for the ${title}, from ${formatCurrency(product.price)}. Warranty and shipping side by side.`;
 
     return {
       title,
@@ -145,11 +138,7 @@ function MockProductView({ product }: { product: NonNullable<ReturnType<typeof p
     priceHistory,
   } = product;
 
-  // Offers are baked into `MOCK_PRODUCTS` once at server start; cashback is
-  // recomputed here from the live admin-configured rates on every request so
-  // a rate saved in System Controls shows up on the very next page view.
-  const offers = applyLiveCashback(product.offers);
-  const cashback = offers[0]?.cashback ?? product.cashback;
+  const offers = product.offers;
 
   const title = `${brand} ${model}`;
   // `gallery` is the full set when supplied; otherwise fall back to the single
@@ -220,7 +209,7 @@ function MockProductView({ product }: { product: NonNullable<ReturnType<typeof p
                   </p>
                   <p className="mt-1 font-mono text-[10px] tabular-nums text-muted-foreground">
                     {formatCurrency(bestNet, { cents: true })} total after
-                    shipping &amp; cashback
+                    shipping
                   </p>
                 </div>
 
@@ -239,33 +228,16 @@ function MockProductView({ product }: { product: NonNullable<ReturnType<typeof p
                 </Tooltip>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="flex items-center gap-2 rounded-xl bg-vip/10 px-3.5 py-2.5 ring-1 ring-inset ring-vip/25">
-                  <TrendingDown
-                    className="h-4 w-4 shrink-0 text-vip-strong"
-                    aria-hidden="true"
-                  />
-                  <p className="font-mono text-sm font-semibold tabular-nums text-vip-strong">
-                    Save {savingsPct}%{" "}
-                    <span className="text-vip-strong/70">/</span>{" "}
-                    {formatCurrency(savings)}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 rounded-xl border border-vip/25 bg-vip/[0.06] px-3.5 py-2.5">
-                  <Wallet
-                    className="h-4 w-4 shrink-0 text-vip-strong"
-                    aria-hidden="true"
-                  />
-                  <p className="text-xs leading-snug text-muted">
-                    +{" "}
-                    <span className="font-mono font-semibold tabular-nums text-vip-strong">
-                      {formatCurrency(cashback, { cents: true })}
-                    </span>{" "}
-                    Cashback for{" "}
-                    <span className="font-medium text-vip-strong">VIP Members</span>
-                  </p>
-                </div>
+              <div className="flex items-center gap-2 rounded-xl bg-vip/10 px-3.5 py-2.5 ring-1 ring-inset ring-vip/25">
+                <TrendingDown
+                  className="h-4 w-4 shrink-0 text-vip-strong"
+                  aria-hidden="true"
+                />
+                <p className="font-mono text-sm font-semibold tabular-nums text-vip-strong">
+                  Save {savingsPct}%{" "}
+                  <span className="text-vip-strong/70">/</span>{" "}
+                  {formatCurrency(savings)}
+                </p>
               </div>
 
               {/* 90-day trend --------------------------------------- */}
@@ -392,11 +364,6 @@ async function LiveProductView({
         ? Math.round((savings / anchor.originalPrice) * 100)
         : 0;
 
-    // Read fresh on every request (this route is `force-dynamic`), so a rate
-    // saved in System Controls is reflected on the very next page view.
-    const cashbackRates = getCashbackRates();
-    const cashback = computeCashback(anchor.price, rateForStore(anchor.store, cashbackRates));
-
     return (
     <>
       <Navbar />
@@ -489,30 +456,16 @@ async function LiveProductView({
                 )}
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {savingsPct > 0 && (
-                  <div className="flex items-center gap-2 rounded-xl bg-vip/10 px-3.5 py-2.5 ring-1 ring-inset ring-vip/25">
-                    <TrendingDown className="h-4 w-4 shrink-0 text-vip-strong" aria-hidden="true" />
-                    <p className="font-mono text-sm font-semibold tabular-nums text-vip-strong">
-                      Save {savingsPct}%{" "}
-                      <span className="text-vip-strong/70">/</span>{" "}
-                      {formatCurrency(savings)}
-                    </p>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-2 rounded-xl border border-vip/25 bg-vip/[0.06] px-3.5 py-2.5">
-                  <Wallet className="h-4 w-4 shrink-0 text-vip-strong" aria-hidden="true" />
-                  <p className="text-xs leading-snug text-muted">
-                    +{" "}
-                    <span className="font-mono font-semibold tabular-nums text-vip-strong">
-                      {formatCurrency(cashback, { cents: true })}
-                    </span>{" "}
-                    Cashback for{" "}
-                    <span className="font-medium text-vip-strong">VIP Members</span>
+              {savingsPct > 0 && (
+                <div className="flex items-center gap-2 rounded-xl bg-vip/10 px-3.5 py-2.5 ring-1 ring-inset ring-vip/25">
+                  <TrendingDown className="h-4 w-4 shrink-0 text-vip-strong" aria-hidden="true" />
+                  <p className="font-mono text-sm font-semibold tabular-nums text-vip-strong">
+                    Save {savingsPct}%{" "}
+                    <span className="text-vip-strong/70">/</span>{" "}
+                    {formatCurrency(savings)}
                   </p>
                 </div>
-              </div>
+              )}
 
               {/* Price trend ------------------------------------------ */}
               <div className="rounded-2xl border border-surface-border bg-canvas p-4">
@@ -566,7 +519,6 @@ async function LiveProductView({
                 productId={id}
                 offer={anchor}
                 offerCount={offers.length}
-                cashback={cashback}
               />
             </div>
           </section>
@@ -577,7 +529,6 @@ async function LiveProductView({
               productId={id}
               title={title}
               offers={offers}
-              cashbackRates={cashbackRates}
             />
           </div>
         </div>

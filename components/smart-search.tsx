@@ -424,9 +424,6 @@ function AiMatchCard({
               <span className="font-mono text-sm font-semibold tabular-nums">
                 {formatCurrency(offer.price)}
               </span>
-              <span className="font-mono text-[10px] tabular-nums text-vip-strong">
-                +{formatCurrency(offer.cashback, { cents: true })} back
-              </span>
             </div>
           </li>
         ))}

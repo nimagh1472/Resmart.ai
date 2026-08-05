@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Radar, Scale, Wallet } from "lucide-react";
+import { Crown, Radar, Scale } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
@@ -20,10 +20,10 @@ const STEPS = [
     tone: "accent" as const,
   },
   {
-    icon: Wallet,
-    title: "Get Guaranteed Cashback",
+    icon: Crown,
+    title: "Unlock VIP Perks",
     description:
-      "Buy through ReSmart and 3% lands in your cashback wallet automatically. Withdraw to your bank whenever you like.",
+      "Try VIP for $4.99/mo for your first 3 months, then $14.99/mo — unlimited AI Vision search, SMS drop alerts, and early access to new listings.",
     tone: "vip" as const,
   },
 ];

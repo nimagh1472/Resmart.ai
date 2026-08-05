@@ -2,32 +2,25 @@
 /* Platform settings                                                   */
 /* ------------------------------------------------------------------ */
 
-import {
-  CASHBACK_RATE_BOUNDS,
-  DEFAULT_CASHBACK_RATES,
-  averageCashbackFraction,
-  type CashbackRates,
-} from "@/lib/cashback-rates";
-
 export type PlatformSettings = {
   /** VIP subscription price, USD per month. */
   vipFee: number;
-  /** Cashback paid to VIP members, per store, as a percentage point (2.0 = 2%). */
-  cashbackRates: CashbackRates;
   /** Platform commission on completed merchant sales, as a fraction. */
   commissionRate: number;
+  /** Flat merchant membership fee, USD per month, billed regardless of sales volume. */
+  merchantSubscriptionFee: number;
 };
 
 export const DEFAULT_SETTINGS: PlatformSettings = {
   vipFee: 14.99,
-  cashbackRates: DEFAULT_CASHBACK_RATES,
   commissionRate: 0.1,
+  merchantSubscriptionFee: 79.99,
 };
 
 export const SETTING_BOUNDS = {
   vipFee: { min: 4.99, max: 49.99, step: 1 },
-  cashbackRates: CASHBACK_RATE_BOUNDS,
   commissionRate: { min: 0.05, max: 0.25, step: 0.005 },
+  merchantSubscriptionFee: { min: 19.99, max: 199.99, step: 5 },
 } as const;
 
 /* ------------------------------------------------------------------ */
@@ -42,46 +35,48 @@ export const SETTING_BOUNDS = {
 export type PlatformFinancials = {
   periodLabel: string;
   gmv: number;
-  /** Share of GMV made by cashback-eligible VIP members. */
-  vipAttributedGmv: number;
   vipSubscribers: number;
+  merchantSubscribers: number;
   cpcAdRevenue: number;
   recordedCommissionRate: number;
   recordedVipFee: number;
-  recordedCashbackRate: number;
+  recordedMerchantSubscriptionFee: number;
   /** Period-over-period change, as a fraction. */
   deltas: {
     gmv: number;
     commission: number;
     vip: number;
     cpc: number;
-    cashback: number;
+    merchantSubscription: number;
   };
 };
 
 export const MOCK_FINANCIALS: PlatformFinancials = {
   periodLabel: "Month to date · Aug 2026",
   gmv: 4_182_940,
-  vipAttributedGmv: 3_153_900,
   vipSubscribers: 34_182,
+  merchantSubscribers: 2_614,
   cpcAdRevenue: 186_420,
   recordedCommissionRate: 0.1,
   recordedVipFee: 14.99,
-  recordedCashbackRate: averageCashbackFraction(DEFAULT_CASHBACK_RATES),
-  deltas: { gmv: 0.184, commission: 0.184, vip: 0.092, cpc: 0.231, cashback: 0.147 },
+  recordedMerchantSubscriptionFee: 79.99,
+  deltas: { gmv: 0.184, commission: 0.184, vip: 0.092, cpc: 0.231, merchantSubscription: 0.061 },
 };
 
 /** Derives every headline figure from the period's recorded rates. */
 export function computeFinancials(f: PlatformFinancials) {
   const salesCommission = f.gmv * f.recordedCommissionRate;
   const vipRevenue = f.vipSubscribers * f.recordedVipFee;
-  const cashbackPaidOut = f.vipAttributedGmv * f.recordedCashbackRate;
+  const merchantSubscriptionRevenue =
+    f.merchantSubscribers * f.recordedMerchantSubscriptionFee;
   return {
     salesCommission,
     vipRevenue,
-    cashbackPaidOut,
-    grossRevenue: salesCommission + vipRevenue + f.cpcAdRevenue,
-    netRevenue: salesCommission + vipRevenue + f.cpcAdRevenue - cashbackPaidOut,
+    merchantSubscriptionRevenue,
+    grossRevenue:
+      salesCommission + vipRevenue + f.cpcAdRevenue + merchantSubscriptionRevenue,
+    netRevenue:
+      salesCommission + vipRevenue + f.cpcAdRevenue + merchantSubscriptionRevenue,
   };
 }
 
@@ -95,9 +90,15 @@ export function projectSettingsImpact(
 ) {
   const commission = f.gmv * (next.commissionRate - f.recordedCommissionRate);
   const vip = f.vipSubscribers * (next.vipFee - f.recordedVipFee);
-  const nextCashbackRate = averageCashbackFraction(next.cashbackRates);
-  const cashback = f.vipAttributedGmv * (nextCashbackRate - f.recordedCashbackRate);
-  return { commission, vip, cashback, net: commission + vip - cashback };
+  const merchantSubscription =
+    f.merchantSubscribers *
+    (next.merchantSubscriptionFee - f.recordedMerchantSubscriptionFee);
+  return {
+    commission,
+    vip,
+    merchantSubscription,
+    net: commission + vip + merchantSubscription,
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -214,7 +215,6 @@ export type PlatformUser = {
   joinedOn: string;
   isVip: boolean;
   lifetimeSpend: number;
-  cashbackEarned: number;
   status: "active" | "suspended";
   /** Set when automated abuse checks flag the account. */
   flagReason?: string;
@@ -228,7 +228,6 @@ export const MOCK_USERS: PlatformUser[] = [
     joinedOn: "2025-03-14",
     isVip: true,
     lifetimeSpend: 12_482.4,
-    cashbackEarned: 1_284.62,
     status: "active",
   },
   {
@@ -238,7 +237,6 @@ export const MOCK_USERS: PlatformUser[] = [
     joinedOn: "2025-06-02",
     isVip: true,
     lifetimeSpend: 8_940.0,
-    cashbackEarned: 812.15,
     status: "active",
   },
   {
@@ -248,7 +246,6 @@ export const MOCK_USERS: PlatformUser[] = [
     joinedOn: "2026-01-19",
     isVip: false,
     lifetimeSpend: 1_204.5,
-    cashbackEarned: 0,
     status: "active",
   },
   {
@@ -258,7 +255,6 @@ export const MOCK_USERS: PlatformUser[] = [
     joinedOn: "2025-11-08",
     isVip: true,
     lifetimeSpend: 24_118.9,
-    cashbackEarned: 2_611.4,
     status: "active",
   },
   {
@@ -268,9 +264,8 @@ export const MOCK_USERS: PlatformUser[] = [
     joinedOn: "2026-04-30",
     isVip: false,
     lifetimeSpend: 318.0,
-    cashbackEarned: 0,
     status: "suspended",
-    flagReason: "14 cashback claims on refunded orders",
+    flagReason: "14 disputed charges on refunded orders",
   },
   {
     id: "usr-6018",
@@ -279,9 +274,8 @@ export const MOCK_USERS: PlatformUser[] = [
     joinedOn: "2026-02-11",
     isVip: true,
     lifetimeSpend: 5_602.75,
-    cashbackEarned: 468.9,
     status: "active",
-    flagReason: "Payout method changed 4× this month",
+    flagReason: "Billing method changed 4× this month",
   },
 ];
 

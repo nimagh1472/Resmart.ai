@@ -6,14 +6,6 @@ import {
   SETTING_BOUNDS,
   computeFinancials,
 } from "@/lib/mock-admin";
-import {
-  CASHBACK_RATE_BOUNDS,
-  CASHBACK_STORES,
-  getCashbackRates,
-  isValidCashbackRate,
-  setCashbackRates,
-  type CashbackRates,
-} from "@/lib/cashback-rates";
 
 /**
  * Admin API. Every method requires an admin credential — see lib/admin-auth.
@@ -48,19 +40,19 @@ export async function GET(request: Request) {
       period: { label: MOCK_FINANCIALS.periodLabel, start, end },
       metrics: {
         gmv: MOCK_FINANCIALS.gmv,
-        vipAttributedGmv: MOCK_FINANCIALS.vipAttributedGmv,
         salesCommission: f.salesCommission,
         vipSubscribers: MOCK_FINANCIALS.vipSubscribers,
         vipRevenue: f.vipRevenue,
         cpcAdRevenue: MOCK_FINANCIALS.cpcAdRevenue,
-        cashbackPaidOut: f.cashbackPaidOut,
+        merchantSubscribers: MOCK_FINANCIALS.merchantSubscribers,
+        merchantSubscriptionRevenue: f.merchantSubscriptionRevenue,
         grossRevenue: f.grossRevenue,
         netRevenue: f.netRevenue,
       },
       rates: {
         commissionRate: MOCK_FINANCIALS.recordedCommissionRate,
         vipFee: MOCK_FINANCIALS.recordedVipFee,
-        cashbackRates: getCashbackRates(),
+        merchantSubscriptionFee: MOCK_FINANCIALS.recordedMerchantSubscriptionFee,
       },
     });
   }
@@ -76,12 +68,10 @@ export async function GET(request: Request) {
       period_start: string;
       period_end: string;
       gmv_cents: number;
-      vip_attributed_gmv_cents: number;
       sales_commission_cents: number;
       vip_subscribers: number;
       vip_revenue_cents: number;
       cpc_ad_revenue_cents: number;
-      cashback_paid_cents: number;
       net_revenue_cents: number;
     }>();
 
@@ -94,7 +84,7 @@ export async function GET(request: Request) {
 
   const { data: settings } = await supabase
     .from("platform_settings")
-    .select("vip_fee_cents, cashback_rates, default_commission_rate")
+    .select("vip_fee_cents, default_commission_rate, merchant_subscription_fee_cents")
     .single();
 
   // The DB works in cents; the API surface is dollars.
@@ -105,12 +95,10 @@ export async function GET(request: Request) {
     period: { start: data.period_start, end: data.period_end },
     metrics: {
       gmv: toUsd(data.gmv_cents),
-      vipAttributedGmv: toUsd(data.vip_attributed_gmv_cents),
       salesCommission: toUsd(data.sales_commission_cents),
       vipSubscribers: data.vip_subscribers,
       vipRevenue: toUsd(data.vip_revenue_cents),
       cpcAdRevenue: toUsd(data.cpc_ad_revenue_cents),
-      cashbackPaidOut: toUsd(data.cashback_paid_cents),
       grossRevenue: toUsd(
         data.sales_commission_cents +
           data.vip_revenue_cents +
@@ -121,8 +109,8 @@ export async function GET(request: Request) {
     settings: settings
       ? {
           vipFee: toUsd(settings.vip_fee_cents),
-          cashbackRates: settings.cashback_rates as CashbackRates,
           commissionRate: Number(settings.default_commission_rate),
+          merchantSubscriptionFee: toUsd(settings.merchant_subscription_fee_cents),
         }
       : null,
   });
@@ -138,8 +126,8 @@ type Body = {
   reason?: string;
   settings?: {
     vipFee?: number;
-    cashbackRates?: Partial<CashbackRates>;
     commissionRate?: number;
+    merchantSubscriptionFee?: number;
   };
 };
 
@@ -320,18 +308,11 @@ async function updateSettings(body: Body, actor: AdminActor) {
 
   inRange(patch.vipFee, SETTING_BOUNDS.vipFee, "vipFee");
   inRange(patch.commissionRate, SETTING_BOUNDS.commissionRate, "commissionRate");
-
-  if (patch.cashbackRates) {
-    for (const store of CASHBACK_STORES) {
-      if (!(store in patch.cashbackRates)) continue;
-      const v = patch.cashbackRates[store];
-      if (!isValidCashbackRate(v)) {
-        errors.push(
-          `cashbackRates.${store} must be between ${CASHBACK_RATE_BOUNDS.min}% and ${CASHBACK_RATE_BOUNDS.max}%.`,
-        );
-      }
-    }
-  }
+  inRange(
+    patch.merchantSubscriptionFee,
+    SETTING_BOUNDS.merchantSubscriptionFee,
+    "merchantSubscriptionFee",
+  );
 
   if (errors.length > 0) {
     return NextResponse.json(
@@ -344,7 +325,7 @@ async function updateSettings(body: Body, actor: AdminActor) {
 
   const { data: current, error: readError } = await supabase
     .from("platform_settings")
-    .select("vip_fee_cents, cashback_rates, default_commission_rate")
+    .select("vip_fee_cents, default_commission_rate, merchant_subscription_fee_cents")
     .eq("id", true)
     .single();
 
@@ -355,34 +336,18 @@ async function updateSettings(body: Body, actor: AdminActor) {
     );
   }
 
-  const currentCashbackRates = current.cashback_rates as CashbackRates;
-  const nextCashbackRates: CashbackRates = {
-    ...currentCashbackRates,
-    ...patch.cashbackRates,
-  };
-  const maxCashbackFraction =
-    Math.max(...CASHBACK_STORES.map((s) => nextCashbackRates[s])) / 100;
-
   const next = {
     vip_fee_cents:
       patch.vipFee !== undefined
         ? round(patch.vipFee * 100)
         : current.vip_fee_cents,
-    cashback_rates: nextCashbackRates,
     default_commission_rate:
       patch.commissionRate ?? Number(current.default_commission_rate),
+    merchant_subscription_fee_cents:
+      patch.merchantSubscriptionFee !== undefined
+        ? round(patch.merchantSubscriptionFee * 100)
+        : current.merchant_subscription_fee_cents,
   };
-
-  if (maxCashbackFraction > next.default_commission_rate) {
-    return NextResponse.json(
-      {
-        error: "invalid_request",
-        message:
-          "cashbackRates cannot exceed commissionRate — every sale would pay out more than it earns.",
-      },
-      { status: 422 },
-    );
-  }
 
   const { data: saved, error: writeError } = await supabase
     .from("platform_settings")
@@ -392,7 +357,9 @@ async function updateSettings(body: Body, actor: AdminActor) {
       updated_at: new Date().toISOString(),
     })
     .eq("id", true)
-    .select("vip_fee_cents, cashback_rates, default_commission_rate, updated_at")
+    .select(
+      "vip_fee_cents, default_commission_rate, merchant_subscription_fee_cents, updated_at",
+    )
     .single();
 
   if (writeError || !saved) {
@@ -402,25 +369,18 @@ async function updateSettings(body: Body, actor: AdminActor) {
     );
   }
 
-  // Keeps product/comparison pages (which read the in-memory store directly)
-  // consistent with what was just persisted to Supabase.
-  setCashbackRates(saved.cashback_rates as CashbackRates);
-
   // Append-only audit of what actually changed.
-  const savedCashbackRates = saved.cashback_rates as CashbackRates;
   const changes: Array<[string, number, number]> = [
     ["vip_fee_cents", current.vip_fee_cents, saved.vip_fee_cents],
-    ...CASHBACK_STORES.map(
-      (s): [string, number, number] => [
-        `cashback_rate_${s}`,
-        currentCashbackRates[s],
-        savedCashbackRates[s],
-      ],
-    ),
     [
       "default_commission_rate",
       Number(current.default_commission_rate),
       Number(saved.default_commission_rate),
+    ],
+    [
+      "merchant_subscription_fee_cents",
+      current.merchant_subscription_fee_cents,
+      saved.merchant_subscription_fee_cents,
     ],
   ];
   const audit = changes
@@ -439,8 +399,8 @@ async function updateSettings(body: Body, actor: AdminActor) {
     changed: audit.map((a) => a.field),
     settings: {
       vipFee: saved.vip_fee_cents / 100,
-      cashbackRates: savedCashbackRates,
       commissionRate: Number(saved.default_commission_rate),
+      merchantSubscriptionFee: saved.merchant_subscription_fee_cents / 100,
       updatedAt: saved.updated_at,
     },
   });

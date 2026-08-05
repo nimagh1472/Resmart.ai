@@ -72,7 +72,7 @@ export function safeExternalUrl(raw: string | undefined | null): string | null {
 
 /**
  * USD formatter. Cents are shown only when the value actually has them, so
- * list prices read `$849` while cashback reads `$25.47`.
+ * list prices read `$849` while a finer amount reads `$25.47`.
  */
 export function formatCurrency(
   value: number,

@@ -145,7 +145,15 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3000/api/search?q=coffee%20maker\")",
       "Bash(taskkill //F //IM node.exe //FI \"WINDOWTITLE eq *\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 2 http://localhost:3000/api/search?q=test)",
-      "Bash(taskkill *)"
+      "Bash(taskkill *)",
+      "Bash(curl -s \"http://localhost:3457/api/products?condition=brand-new&limit=10\")",
+      "Bash(curl -s \"http://localhost:3457/product/bose-qc-ultra\")",
+      "Bash(curl -s \"http://localhost:3457/\")",
+      "Bash(curl -s \"http://localhost:3457/search\")",
+      "Bash(curl -s \"http://localhost:3457/search?q=laptop\")",
+      "Bash(curl -s \"http://localhost:3457/api/products/search?q=laptop&fulfillment=in-store-pickup\")",
+      "Bash(curl -s \"http://localhost:3457/api/products/search?q=laptop&condition=refurbished&limit=3\")",
+      "Bash(pkill -f \"next dev -p 3457\")"
     ]
   }
 }

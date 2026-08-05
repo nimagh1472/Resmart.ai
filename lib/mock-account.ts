@@ -1,7 +1,4 @@
-﻿/** Minimum balance before a payout can be requested. */
-export const PAYOUT_MINIMUM = 25;
-
-export type AccountUser = {
+﻿export type AccountUser = {
   name: string;
   email: string;
   initials: string;
@@ -18,21 +15,6 @@ export const MOCK_USER: AccountUser = {
   tier: "vip",
   memberSince: "2025-03-14",
   renewsOn: "2026-08-28",
-};
-
-export type CashbackWallet = {
-  /** Lifetime earnings = available + pending + paidOut. */
-  totalEarned: number;
-  pending: number;
-  available: number;
-  paidOut: number;
-};
-
-export const MOCK_WALLET: CashbackWallet = {
-  totalEarned: 1284.62,
-  pending: 148.2,
-  available: 612.35,
-  paidOut: 524.07,
 };
 
 /* ------------------------------------------------------------------ */

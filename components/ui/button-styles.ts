@@ -14,7 +14,7 @@ export const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   // Emerald — the default call to action.
   primary:
     "bg-accent text-white shadow-glow hover:bg-accent-hover active:bg-accent-strong focus-visible:outline-accent-strong",
-  // Deeper emerald — cashback / payout confirmations.
+  // Deeper emerald — success / confirmation states.
   success:
     "bg-accent-hover text-white shadow-glow-vip hover:bg-accent-strong focus-visible:outline-accent-strong",
   // White with a crisp slate hairline — the Nordic secondary.

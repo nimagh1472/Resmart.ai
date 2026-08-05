@@ -162,6 +162,26 @@ function simplifySearchQuery(query: string): string {
 export type Condition = "Open Box" | "Refurbished" | "Like New" | "Pre-Owned";
 
 /**
+ * Search-panel condition buckets. Coarser than `Condition` — "Open
+ * Box"/"Pre-Owned"/"Like New" are grouped into one filter option since that's
+ * how the search control panel presents them. There's no "brand-new" bucket
+ * here: this pipeline's `detectCondition` hard-filters brand-new listings out
+ * before they ever reach a `Product`, by design (see `CONDITION_QUERY_SUFFIX`
+ * above) — the curated catalog (`/api/products`) is the only place brand-new
+ * inventory is filterable.
+ */
+export type ConditionFilter = "refurbished" | "open-box-pre-owned";
+
+export function matchesConditionFilter(
+  condition: Condition | null,
+  filter: ConditionFilter,
+): boolean {
+  if (!condition) return false;
+  if (filter === "refurbished") return condition === "Refurbished";
+  return condition === "Open Box" || condition === "Pre-Owned" || condition === "Like New";
+}
+
+/**
  * Classifies a listing's condition from its title and (when present)
  * Serper's own `condition` field. Returns null for anything that doesn't
  * clearly read as pre-owned — including plain "new"/"brand new" listings —

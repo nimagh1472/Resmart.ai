@@ -1,13 +1,12 @@
 "use client";
 
-import { ExternalLink, ShieldCheck, Truck, Wallet } from "lucide-react";
+import { ExternalLink, ShieldCheck, Truck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { BUTTON_MOTION, buttonStyles } from "@/components/ui/button-styles";
 import { motion } from "framer-motion";
 import type { Product } from "@/lib/marketplace";
 import { normalizeCondition, shippingStatus, STORE_INFO } from "@/lib/store-info";
 import { trackAffiliateClick } from "@/lib/analytics";
-import { computeCashback, rateForStore, type CashbackRates } from "@/lib/cashback-rates";
 import { cn, formatCurrency, safeExternalUrl } from "@/lib/utils";
 
 export interface LivePriceComparisonProps {
@@ -15,8 +14,6 @@ export interface LivePriceComparisonProps {
   title: string;
   /** One representative (cheapest) listing per store, already sorted by price. */
   offers: Product[];
-  /** Current per-store admin-configured VIP cashback rates. */
-  cashbackRates: CashbackRates;
   className?: string;
 }
 
@@ -30,7 +27,6 @@ export function LivePriceComparison({
   productId,
   title,
   offers,
-  cashbackRates,
   className,
 }: LivePriceComparisonProps) {
   if (offers.length === 0) {
@@ -76,14 +72,14 @@ export function LivePriceComparison({
           </caption>
           <thead>
             <tr className="border-b border-surface-border bg-surface-raised/60">
-              {["Store", "Price", "Savings", "VIP Cashback", "Condition", "Shipping", ""].map(
+              {["Store", "Price", "Savings", "Condition", "Shipping", ""].map(
                 (label, i) => (
                   <th
                     key={label || `actions-${i}`}
                     scope="col"
                     className={cn(
                       "px-4 py-3 font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground",
-                      (i === 1 || i === 2 || i === 3) && "text-right",
+                      (i === 1 || i === 2) && "text-right",
                     )}
                   >
                     {label || <span className="sr-only">Buy Deal</span>}
@@ -110,9 +106,6 @@ export function LivePriceComparison({
                 <td className="px-4 py-4 text-right align-middle">
                   <SavingsCell offer={offer} />
                 </td>
-                <td className="px-4 py-4 text-right align-middle">
-                  <CashbackCell offer={offer} cashbackRates={cashbackRates} />
-                </td>
                 <td className="px-4 py-4 align-middle">
                   <ConditionCell condition={offer.condition} />
                 </td>
@@ -126,7 +119,6 @@ export function LivePriceComparison({
                     offerCount={offers.length}
                     productId={productId}
                     title={title}
-                    cashbackRates={cashbackRates}
                   />
                 </td>
               </tr>
@@ -156,7 +148,6 @@ export function LivePriceComparison({
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <ConditionCell condition={offer.condition} />
-              <CashbackCell offer={offer} cashbackRates={cashbackRates} />
             </div>
             <ShippingCell store={offer.store} />
             <BuyDealButton
@@ -165,7 +156,6 @@ export function LivePriceComparison({
               offerCount={offers.length}
               productId={productId}
               title={title}
-              cashbackRates={cashbackRates}
               fullWidth
             />
           </li>
@@ -294,38 +284,12 @@ function SavingsCell({
   );
 }
 
-function CashbackCell({
-  offer,
-  cashbackRates,
-}: {
-  offer: Product;
-  cashbackRates: CashbackRates;
-}) {
-  const rate = rateForStore(offer.store, cashbackRates);
-  const cashback = computeCashback(offer.price, rate);
-
-  return (
-    <div className="flex items-center gap-1.5">
-      <Wallet className="h-3.5 w-3.5 shrink-0 text-vip-strong" aria-hidden="true" />
-      <div className="flex flex-col">
-        <span className="font-mono text-sm font-semibold tabular-nums text-vip-strong">
-          {formatCurrency(cashback, { cents: true })}
-        </span>
-        <span className="font-mono text-[10px] uppercase tracking-wider text-vip-strong/80">
-          {rate.toFixed(2)}% VIP
-        </span>
-      </div>
-    </div>
-  );
-}
-
 function BuyDealButton({
   offer,
   rank,
   offerCount,
   productId,
   title,
-  cashbackRates,
   fullWidth = false,
 }: {
   offer: Product;
@@ -333,7 +297,6 @@ function BuyDealButton({
   offerCount: number;
   productId: string;
   title: string;
-  cashbackRates: CashbackRates;
   fullWidth?: boolean;
 }) {
   // Live listing URLs come straight from each retailer's public feed —
@@ -369,7 +332,6 @@ function BuyDealButton({
           condition: offer.condition ?? "not specified",
           price: offer.price,
           msrp: offer.originalPrice ?? offer.price,
-          cashback: computeCashback(offer.price, rateForStore(offer.store, cashbackRates)),
           dealUrl: href,
           offerRank: rank + 1,
           offerCount,

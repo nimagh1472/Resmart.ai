@@ -25,7 +25,6 @@ import {
   type ProductCategory,
   type RetailerId,
 } from "@/lib/catalog";
-import { computeCashback, rateForRetailer } from "@/lib/cashback-rates";
 
 /** Categories the catalog carries, plus a bucket for everything else. */
 export type InferredCategory = ProductCategory | "other";
@@ -256,6 +255,7 @@ const RETAILER_HOSTS: [fragment: string, label: string, id: RetailerId | null][]
 
 /** Typical open-box discount off MSRP, by grade. */
 const DISCOUNT: Record<CardCondition, number> = {
+  "brand-new": 0.05,
   "open-box-excellent": 0.3,
   "like-new": 0.26,
   "certified-refurbished": 0.35,
@@ -554,7 +554,6 @@ export type AiMatchOffer = {
   warranty: string;
   price: number;
   shipping: number;
-  cashback: number;
   stock: string;
   dealUrl: string;
 };
@@ -609,7 +608,6 @@ export function buildAiMatchOffers(parsed: ParsedProduct): AiMatchOffer[] {
         warranty: defaultWarranty(parsed.brand ?? "Manufacturer", condition),
         price,
         shipping,
-        cashback: computeCashback(price, rateForRetailer(merchant)),
         stock: i === 0 ? "Checking stock" : "Availability varies",
         dealUrl: RETAILERS[merchant].home,
       } satisfies AiMatchOffer;

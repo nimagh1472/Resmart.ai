@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { RotateCcw, SlidersHorizontal, TriangleAlert } from "lucide-react";
+import { RotateCcw, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DEFAULT_SETTINGS,
@@ -10,7 +10,6 @@ import {
   type PlatformFinancials,
   type PlatformSettings,
 } from "@/lib/mock-admin";
-import { CASHBACK_STORES } from "@/lib/cashback-rates";
 import { cn, formatCurrency } from "@/lib/utils";
 
 /**
@@ -34,13 +33,9 @@ export function SystemControls({
   const dirty =
     draft.vipFee !== settings.vipFee ||
     draft.commissionRate !== settings.commissionRate ||
-    CASHBACK_STORES.some(
-      (store) => draft.cashbackRates[store] !== settings.cashbackRates[store],
-    );
+    draft.merchantSubscriptionFee !== settings.merchantSubscriptionFee;
 
   const impact = projectSettingsImpact(financials, draft);
-  const maxCashbackFraction =
-    Math.max(...CASHBACK_STORES.map((store) => draft.cashbackRates[store])) / 100;
 
   const patch = (p: Partial<PlatformSettings>) => {
     setDraft((d) => ({ ...d, ...p }));
@@ -104,28 +99,39 @@ export function SystemControls({
         </div>
       </label>
 
-      {/* Cashback ----------------------------------------------------- */}
-      <div className="flex flex-col gap-4">
-        <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-          Member cashback rate — per store
+      {/* Merchant subscription fee ------------------------------------ */}
+      <label className="flex flex-col gap-1.5">
+        <span className="flex items-baseline justify-between gap-2">
+          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            Merchant subscription fee
+          </span>
+          <span className="font-mono text-xs text-muted-foreground">
+            default{" "}
+            {formatCurrency(DEFAULT_SETTINGS.merchantSubscriptionFee, {
+              cents: true,
+            })}
+          </span>
         </span>
-        {CASHBACK_STORES.map((store) => (
-          <PercentSlider
-            key={store}
-            id={`cashback-rate-${store.toLowerCase().replace(/\s+/g, "-")}`}
-            label={store}
-            value={draft.cashbackRates[store]}
-            bounds={SETTING_BOUNDS.cashbackRates}
-            defaultValue={DEFAULT_SETTINGS.cashbackRates[store]}
-            decimals={2}
-            tone="vip"
-            raw
-            onChange={(rate) =>
-              patch({ cashbackRates: { ...draft.cashbackRates, [store]: rate } })
+        <div className="relative">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-sm text-muted-foreground">
+            $
+          </span>
+          <input
+            type="number"
+            min={SETTING_BOUNDS.merchantSubscriptionFee.min}
+            max={SETTING_BOUNDS.merchantSubscriptionFee.max}
+            step="0.01"
+            value={draft.merchantSubscriptionFee}
+            onChange={(e) =>
+              patch({ merchantSubscriptionFee: Number(e.target.value) })
             }
+            className="h-11 w-full rounded-xl border border-surface-border bg-canvas pl-7 pr-16 font-mono text-sm tabular-nums text-foreground focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/40"
           />
-        ))}
-      </div>
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 font-mono text-xs text-muted-foreground">
+            / month
+          </span>
+        </div>
+      </label>
 
       {/* Commission ------------------------------------------------- */}
       <PercentSlider
@@ -149,7 +155,10 @@ export function SystemControls({
           <>
             <ImpactRow label="Commission" value={impact.commission} />
             <ImpactRow label="VIP subscriptions" value={impact.vip} />
-            <ImpactRow label="Cashback cost" value={-impact.cashback} />
+            <ImpactRow
+              label="Merchant subscriptions"
+              value={impact.merchantSubscription}
+            />
             <div className="mt-1 flex items-baseline justify-between gap-3 border-t border-surface-border pt-2">
               <span className="text-xs font-medium">Net change</span>
               <span
@@ -173,17 +182,6 @@ export function SystemControls({
           </p>
         )}
       </div>
-
-      {dirty && maxCashbackFraction > draft.commissionRate && (
-        <p className="flex items-start gap-2 rounded-xl border border-rose-500/25 bg-rose-500/[0.06] px-3 py-2 text-xs text-rose-700">
-          <TriangleAlert
-            className="mt-px h-3.5 w-3.5 shrink-0"
-            aria-hidden="true"
-          />
-          Cashback exceeds commission — every sale would pay out more than it
-          earns.
-        </p>
-      )}
 
       <div className="flex gap-2">
         <Button

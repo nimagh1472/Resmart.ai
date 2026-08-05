@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { BadgeCheck, PackageOpen, Sparkles } from "lucide-react";
+import { BadgeCheck, PackageOpen, Sparkles, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type BadgeTone =
@@ -67,6 +67,7 @@ export function Badge({
 /* ------------------------------------------------------------------ */
 
 export type ProductCondition =
+  | "brand-new"
   | "open-box-excellent"
   | "certified-refurbished"
   | "like-new";
@@ -75,6 +76,11 @@ export const CONDITIONS: Record<
   ProductCondition,
   { label: string; tone: BadgeTone; description: string }
 > = {
+  "brand-new": {
+    label: "Brand New",
+    tone: "amber",
+    description: "Factory-sealed, unopened, never used.",
+  },
   "open-box-excellent": {
     label: "Open-Box Excellent",
     tone: "emerald",
@@ -93,6 +99,7 @@ export const CONDITIONS: Record<
 };
 
 const CONDITION_ICONS: Record<ProductCondition, typeof BadgeCheck> = {
+  "brand-new": Star,
   "open-box-excellent": PackageOpen,
   "certified-refurbished": BadgeCheck,
   "like-new": Sparkles,

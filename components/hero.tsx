@@ -61,7 +61,7 @@ export function Hero() {
           className="max-w-2xl text-balance text-base text-muted sm:text-lg"
         >
           Every open-box, certified refurbished, and like-new listing across the
-          web — graded, price-compared, and cashback-eligible in one place.
+          web — graded and price-compared in one place.
         </motion.p>
 
         <motion.div

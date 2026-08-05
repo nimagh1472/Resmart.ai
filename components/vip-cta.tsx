@@ -2,7 +2,12 @@
 
 import { Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useVip, VIP_PRICE } from "@/components/vip-modal";
+import {
+  useVip,
+  VIP_INTRO_MONTHS,
+  VIP_INTRO_PRICE,
+  VIP_STANDARD_PRICE,
+} from "@/components/vip-modal";
 import { formatCurrency } from "@/lib/utils";
 
 export function VipCta() {
@@ -23,13 +28,14 @@ export function VipCta() {
           </span>
 
           <h2 className="text-balance text-2xl font-bold sm:text-3xl lg:text-4xl">
-            One open-box buy pays for the whole year&apos;s membership
+            Try ReSmart VIP for {formatCurrency(VIP_INTRO_PRICE)}
           </h2>
 
           <p className="max-w-xl text-balance text-muted">
-            3% cashback on every purchase, unlimited AI Vision searches, and SMS
-            alerts the moment a price drops — {formatCurrency(VIP_PRICE)}/mo,
-            cancel anytime.
+            Unlimited AI Vision searches and SMS alerts the moment a price
+            drops — {formatCurrency(VIP_INTRO_PRICE)}/mo for your first{" "}
+            {VIP_INTRO_MONTHS} months, then {formatCurrency(VIP_STANDARD_PRICE)}
+            /mo. Cancel anytime.
           </p>
 
           <Button
@@ -39,7 +45,7 @@ export function VipCta() {
             leftIcon={<Crown className="h-4 w-4" />}
             className="mt-2"
           >
-            See the VIP math
+            Try VIP for {formatCurrency(VIP_INTRO_PRICE)}/mo
           </Button>
         </div>
       </div>

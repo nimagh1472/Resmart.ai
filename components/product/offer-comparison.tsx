@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { ExternalLink, Sparkles, Truck, Wallet } from "lucide-react";
+import { ExternalLink, Sparkles, Truck } from "lucide-react";
 import { Badge, ConditionBadge } from "@/components/ui/badge";
 import { BUTTON_MOTION, buttonStyles } from "@/components/ui/button-styles";
 import {
@@ -26,9 +26,9 @@ export interface OfferComparisonProps {
 
 /**
  * Every merchant carrying this item, ranked by what the shopper actually pays:
- * sticker + shipping − VIP cashback. Sticker price alone would promote
- * listings that claw the difference back on delivery, so the ranking column is
- * shown next to the price rather than hidden behind the sort.
+ * sticker + shipping. Sticker price alone would promote listings that claw
+ * the difference back on delivery, so the total is shown next to the price
+ * rather than hidden behind the sort.
  */
 export function OfferComparison({
   productId,
@@ -67,7 +67,7 @@ export function OfferComparison({
           </h2>
           <p className="mt-1 text-sm text-muted">
             {offers.length} merchant{offers.length === 1 ? "" : "s"} carrying
-            this item, ranked by total cost after shipping and cashback.
+            this item, ranked by total cost after shipping.
           </p>
         </div>
         <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -88,7 +88,6 @@ export function OfferComparison({
                 "Condition & warranty",
                 "Shipping",
                 "Open-box price",
-                "VIP cashback",
                 "",
               ].map((label, i) => (
                 <th
@@ -138,10 +137,6 @@ export function OfferComparison({
                 </td>
 
                 <td className="px-4 py-4 text-right align-middle">
-                  <CashbackCell cashback={offer.cashback} />
-                </td>
-
-                <td className="px-4 py-4 text-right align-middle">
                   <BuyNowButton
                     offer={offer}
                     rank={i}
@@ -188,7 +183,6 @@ export function OfferComparison({
               <div className="text-left">
                 <PriceCell offer={offer} msrp={msrp} align="left" />
               </div>
-              <CashbackCell cashback={offer.cashback} align="right" />
             </div>
 
             <BuyNowButton
@@ -208,8 +202,7 @@ export function OfferComparison({
         Prices, stock and shipping are captured from each merchant when this
         page loads and can change before checkout — always confirm on the
         merchant&apos;s site. ReSmart may earn a commission on these links,
-        which never changes the price you pay or the order above. Cashback is
-        credited to VIP members after the merchant confirms the order.
+        which never changes the price you pay or the order above.
       </p>
     </section>
   );
@@ -324,31 +317,6 @@ function PriceCell({
   );
 }
 
-function CashbackCell({
-  cashback,
-  align = "right",
-}: {
-  cashback: number;
-  align?: "left" | "right";
-}) {
-  return (
-    <div
-      className={cn(
-        "flex flex-col",
-        align === "right" ? "items-end" : "items-start",
-      )}
-    >
-      <span className="inline-flex items-center gap-1.5 font-mono text-sm font-semibold tabular-nums text-vip-strong">
-        <Wallet className="h-3.5 w-3.5" aria-hidden="true" />+
-        {formatCurrency(cashback, { cents: true })}
-      </span>
-      <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-        VIP cashback
-      </span>
-    </div>
-  );
-}
-
 function BuyNowButton({
   offer,
   rank,
@@ -399,7 +367,6 @@ function BuyNowButton({
           condition: offer.condition,
           price: offer.price,
           msrp,
-          cashback: offer.cashback,
           dealUrl: href,
           shipping: offer.shipping,
           offerRank: rank + 1,

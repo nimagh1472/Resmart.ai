@@ -3,19 +3,26 @@
 import { useState } from "react";
 import { CreditCard, ExternalLink, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { VIP_PRICE } from "@/components/vip-modal";
+import {
+  currentVipRate,
+  isInVipIntroPeriod,
+  VIP_INTRO_MONTHS,
+  VIP_STANDARD_PRICE,
+} from "@/components/vip-modal";
 import { formatDate, type AccountUser } from "@/lib/mock-account";
 import { formatCurrency } from "@/lib/utils";
 
 const FEATURES = [
   "Unlimited AI Vision Search",
   "SMS Drop Alerts",
-  "3% Cashback Wallet",
+  "VIP-Only Early Access",
 ];
 
 export function SubscriptionSection({ user }: { user: AccountUser }) {
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const rate = currentVipRate(user.memberSince);
+  const inIntro = isInVipIntroPeriod(user.memberSince);
 
   const openPortal = async () => {
     setLoading(true);
@@ -59,9 +66,15 @@ export function SubscriptionSection({ user }: { user: AccountUser }) {
           <p className="text-xs text-muted-foreground">
             Renews {formatDate(user.renewsOn)} · cancel anytime
           </p>
+          {inIntro && (
+            <p className="text-xs text-muted-foreground">
+              Intro rate for your first {VIP_INTRO_MONTHS} months, then{" "}
+              {formatCurrency(VIP_STANDARD_PRICE)}/mo
+            </p>
+          )}
         </div>
         <p className="font-mono text-2xl font-semibold tabular-nums">
-          {formatCurrency(VIP_PRICE)}
+          {formatCurrency(rate)}
           <span className="ml-1 font-sans text-xs font-normal text-muted-foreground">
             / mo
           </span>

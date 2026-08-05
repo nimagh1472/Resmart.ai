@@ -9,7 +9,6 @@ import {
   MapPin,
   Package,
   TrendingDown,
-  Wallet,
 } from "lucide-react";
 import { CONDITIONS, ConditionBadge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
@@ -60,7 +59,6 @@ export type Product = {
   /** Manufacturer's suggested price — reference only, not a recent sale price. */
   msrp: number;
   price: number;
-  cashback: number;
   /** 90 daily observations, oldest → newest. */
   priceHistory: number[];
   dealUrl: string;
@@ -106,7 +104,6 @@ export function ProductCard({
     condition,
     msrp,
     price,
-    cashback,
     priceHistory,
     inStock,
     offers,
@@ -276,19 +273,6 @@ export function ProductCard({
               ninetyDayDelta < 0 ? "down" : "up"
             } ${formatCurrency(Math.abs(ninetyDayDelta))}`}
           />
-        </div>
-
-        {/* Cashback ------------------------------------------------- */}
-        <div className="flex items-center gap-2 rounded-xl border border-vip/25 bg-vip/[0.06] px-3 py-2">
-          <Wallet className="h-4 w-4 shrink-0 text-vip-strong" aria-hidden="true" />
-          <p className="text-xs leading-snug text-muted">
-            +{" "}
-            <span className="font-mono font-semibold tabular-nums text-vip-strong">
-              {formatCurrency(cashback, { cents: true })}
-            </span>{" "}
-            Cashback for{" "}
-            <span className="font-medium text-vip-strong">VIP Members</span>
-          </p>
         </div>
 
         {/* CTA ------------------------------------------------------ */}

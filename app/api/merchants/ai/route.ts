@@ -94,6 +94,7 @@ const DESCRIPTION_SCHEMA = {
 
 /** Baseline open-box discount off MSRP, by grade. */
 const BASE_DISCOUNT: Record<CardCondition, number> = {
+  "brand-new": 0,
   "open-box-excellent": 0.22,
   "certified-refurbished": 0.32,
   "like-new": 0.18,

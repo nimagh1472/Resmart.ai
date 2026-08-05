@@ -18,7 +18,28 @@ const VipModal = dynamic(() => import("@/components/vip-modal-dialog"), {
   ssr: false,
 });
 
-export const VIP_PRICE = 14.99;
+/** Promotional rate for a new subscriber's first `VIP_INTRO_MONTHS` months. */
+export const VIP_INTRO_PRICE = 4.99;
+export const VIP_INTRO_MONTHS = 3;
+/** Recurring rate once the intro period ends. */
+export const VIP_STANDARD_PRICE = 14.99;
+
+/** True while a member (by join date) is still within the intro window. */
+export function isInVipIntroPeriod(
+  memberSince: string,
+  asOf: Date = new Date(),
+): boolean {
+  const start = new Date(memberSince);
+  const months =
+    (asOf.getFullYear() - start.getFullYear()) * 12 +
+    (asOf.getMonth() - start.getMonth());
+  return months < VIP_INTRO_MONTHS;
+}
+
+/** The rate a member is actually billed today, given when they joined. */
+export function currentVipRate(memberSince: string, asOf: Date = new Date()): number {
+  return isInVipIntroPeriod(memberSince, asOf) ? VIP_INTRO_PRICE : VIP_STANDARD_PRICE;
+}
 
 /* ------------------------------------------------------------------ */
 /* Context — lets the navbar and any CTA open the same modal           */

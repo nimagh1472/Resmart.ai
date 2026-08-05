@@ -9,7 +9,6 @@ import {
 import { MOCK_PRODUCTS } from "@/lib/mock-products";
 import { searchProducts } from "@/lib/search";
 import { CPC_MAX, CPC_MIN, validateImageSource } from "@/lib/mock-merchant";
-import { FALLBACK_CASHBACK_RATE, computeCashback, rateForRetailer } from "@/lib/cashback-rates";
 
 /**
  * GET /api/products
@@ -23,13 +22,22 @@ import { FALLBACK_CASHBACK_RATE, computeCashback, rateForRetailer } from "@/lib/
  *              condition and specs — see lib/search.ts
  *   category   laptops | cameras | headphones | consoles | tvs | appliances
  *   retailer   best-buy | ebay | walmart | amazon-warehouse
- *   condition  open-box-excellent | certified-refurbished
- *   maxPrice   number
- *   sort       relevance | savings | price-asc | price-desc | discount
- *              (defaults to relevance when `q` is set, savings otherwise)
- *   limit      1–50 (default 20)
- *   history    "1" to include the 90-day price series (omitted by default)
+ *   condition   brand-new | open-box-excellent | certified-refurbished | like-new
+ *   fulfillment direct-shipping | in-store-pickup — the curated catalog is
+ *               entirely affiliate links with no physical storefront, so
+ *               every listing counts as direct-shipping; in-store-pickup
+ *               always returns zero results.
+ *   zip         reserved for local-pickup matching once curated listings
+ *               carry a store address; currently has no effect.
+ *   maxPrice    number
+ *   sort        relevance | savings | price-asc | price-desc | discount
+ *               (defaults to relevance when `q` is set, savings otherwise)
+ *   limit       1–50 (default 20)
+ *   history     "1" to include the 90-day price series (omitted by default)
  */
+
+const VALID_FULFILLMENT = ["direct-shipping", "in-store-pickup"] as const;
+type Fulfillment = (typeof VALID_FULFILLMENT)[number];
 
 const VALID_CATEGORIES: ProductCategory[] = [
   "laptops",
@@ -56,6 +64,7 @@ export async function GET(request: Request) {
   const category = searchParams.get("category");
   const retailer = searchParams.get("retailer");
   const condition = searchParams.get("condition");
+  const fulfillment = searchParams.get("fulfillment");
   const maxPriceRaw = searchParams.get("maxPrice");
   // Relevance is only meaningful with a query; without one it would be an
   // arbitrary order, so unqueried requests still default to best-savings-first.
@@ -77,6 +86,9 @@ export async function GET(request: Request) {
   }
   if (condition && !(condition in CONDITIONS_API)) {
     errors.push(`Unknown condition "${condition}".`);
+  }
+  if (fulfillment && !VALID_FULFILLMENT.includes(fulfillment as Fulfillment)) {
+    errors.push(`fulfillment must be one of ${VALID_FULFILLMENT.join(", ")}.`);
   }
   const maxPrice = maxPriceRaw === null ? null : Number(maxPriceRaw);
   if (maxPrice !== null && (Number.isNaN(maxPrice) || maxPrice <= 0)) {
@@ -100,6 +112,9 @@ export async function GET(request: Request) {
     if (retailer && p.retailer !== retailer) return false;
     if (condition && p.condition !== condition) return false;
     if (maxPrice !== null && p.price > maxPrice) return false;
+    // The curated catalog is entirely affiliate links — no listing here has
+    // a physical storefront, so every item is implicitly direct-shipping.
+    if (fulfillment === "in-store-pickup") return false;
     return true;
   });
 
@@ -130,8 +145,6 @@ export async function GET(request: Request) {
           price: p.price,
           savings,
           savingsPercent: Math.round((savings / p.msrp) * 100),
-          cashback: computeCashback(p.price, rateForRetailer(p.retailer)),
-          cashbackRate: rateForRetailer(p.retailer),
         },
         trend: {
           windowDays: history.length,
@@ -302,8 +315,6 @@ export async function POST(request: Request) {
       price,
       savings,
       savingsPercent: Math.round((savings / msrp) * 100),
-      cashback: computeCashback(price, FALLBACK_CASHBACK_RATE),
-      cashbackRate: FALLBACK_CASHBACK_RATE,
     },
     boost: { enabled: boostEnabled, cpcBid },
   };

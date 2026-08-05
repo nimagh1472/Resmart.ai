@@ -6,9 +6,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Crown, Menu, X } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
-import { CashbackTicker } from "@/components/cashback-ticker";
-import { useVip } from "@/components/vip-modal";
-import { cn } from "@/lib/utils";
+import { useVip, VIP_INTRO_PRICE } from "@/components/vip-modal";
+import { cn, formatCurrency } from "@/lib/utils";
 
 /** VIP has no route — it opens the subscription modal instead. */
 type NavItem = { label: string; href?: string; vip?: boolean };
@@ -17,7 +16,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Deals", href: "#deals" },
   { label: "How It Works", href: "#how-it-works" },
   { label: "Merchant Portal", href: "/merchants" },
-  { label: "VIP $14.99/mo", vip: true },
+  { label: "VIP", vip: true },
 ];
 
 export function Navbar() {
@@ -45,9 +44,6 @@ export function Navbar() {
           ))}
         </ul>
 
-        {/* Ticker takes the slack between nav and actions on wide screens. */}
-        <CashbackTicker className="ml-auto hidden max-w-sm flex-1 xl:flex" />
-
         <div className="ml-auto flex items-center gap-2 xl:ml-4">
           <Button variant="secondary" size="sm" className="hidden sm:inline-flex">
             Sign In
@@ -67,11 +63,6 @@ export function Navbar() {
           </button>
         </div>
       </nav>
-
-      {/* Ticker moves below the bar when it can't fit inline. */}
-      <div className="border-t border-surface-border/60 px-4 py-1.5 xl:hidden">
-        <CashbackTicker className="mx-auto max-w-2xl border-none bg-transparent px-0" />
-      </div>
 
       <AnimatePresence initial={false}>
         {mobileOpen && (
@@ -137,7 +128,10 @@ function NavLink({
       >
         <Crown className="h-3.5 w-3.5" aria-hidden="true" />
         <span>
-          VIP <span className="font-mono text-xs tabular-nums">$14.99/mo</span>
+          VIP{" "}
+          <span className="font-mono text-xs tabular-nums">
+            {formatCurrency(VIP_INTRO_PRICE)}/mo
+          </span>
         </span>
       </button>
     );

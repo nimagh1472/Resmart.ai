@@ -7,18 +7,6 @@ import {
   type MerchantOffer,
   type RetailerId,
 } from "@/lib/catalog";
-import {
-  averageCashbackFraction,
-  computeCashback,
-  DEFAULT_CASHBACK_RATES,
-  rateForRetailer,
-} from "@/lib/cashback-rates";
-
-/** Average VIP wallet rate across the five stores — marketing copy only (vip-modal.tsx). */
-export const CASHBACK_RATE = averageCashbackFraction(DEFAULT_CASHBACK_RATES);
-
-const cashback = (price: number, retailer: RetailerId) =>
-  computeCashback(price, rateForRetailer(retailer));
 
 /**
  * Deterministic 90-day series — no RNG, so server and client render the same
@@ -47,8 +35,8 @@ export const CATEGORY_LABELS: Record<ProductCategory, string> = {
 /**
  * A competing merchant's listing, expressed relative to the headline offer so
  * the fixtures stay readable. Several are deliberately cheaper on the sticker
- * but worse once shipping and cashback are counted — that's the case the
- * comparison table exists to make visible.
+ * but worse once shipping is counted — that's the case the comparison table
+ * exists to make visible.
  */
 type OfferSeed = {
   merchant: RetailerId;
@@ -64,10 +52,7 @@ type OfferSeed = {
   returns?: string;
 };
 
-type Seed = Omit<
-  Product,
-  "cashback" | "priceHistory" | "offers" | "specs"
-> & {
+type Seed = Omit<Product, "priceHistory" | "offers" | "specs"> & {
   /** [90 days ago, today] for the trend line. */
   trend: [number, number];
   /** [label, value] pairs for the product page's spec table. */
@@ -118,6 +103,7 @@ const SEEDS = [
       },
       {
         merchant: "ebay",
+        condition: "brand-new",
         delta: 55,
         stock: "1 in stock",
         returns: "14-day returns",
@@ -244,6 +230,7 @@ const SEEDS = [
       },
       {
         merchant: "ebay",
+        condition: "brand-new",
         delta: 45,
         stock: "2 in stock",
         returns: "14-day returns",
@@ -369,6 +356,7 @@ const SEEDS = [
       },
       {
         merchant: "amazon-warehouse",
+        condition: "brand-new",
         delta: 14,
         stock: "6 in stock",
         returns: "30-day returns",
@@ -433,7 +421,7 @@ const SEEDS = [
     model: "QuietComfort Ultra Headphones",
     category: "headphones",
     retailer: "walmart",
-    condition: "open-box-excellent",
+    condition: "brand-new",
     msrp: 429,
     price: 289,
     trend: [279, 289],
@@ -503,6 +491,7 @@ const SEEDS = [
       },
       {
         merchant: "best-buy",
+        condition: "brand-new",
         delta: 25,
         stock: "1 in stock",
         returns: "15-day returns",
@@ -568,7 +557,7 @@ const SEEDS = [
     model: "Switch OLED · White Joy-Con",
     category: "consoles",
     retailer: "ebay",
-    condition: "open-box-excellent",
+    condition: "brand-new",
     msrp: 349,
     price: 249,
     trend: [279, 249],
@@ -640,6 +629,7 @@ const SEEDS = [
       },
       {
         merchant: "amazon-warehouse",
+        condition: "brand-new",
         delta: 55,
         stock: "2 in stock",
         returns: "30-day returns",
@@ -741,7 +731,7 @@ const SEEDS = [
     model: 'QM7 65" QD-Mini LED 4K',
     category: "tvs",
     retailer: "walmart",
-    condition: "open-box-excellent",
+    condition: "brand-new",
     msrp: 999,
     price: 599,
     trend: [699, 599],
@@ -843,6 +833,7 @@ const SEEDS = [
     competitors: [
       {
         merchant: "best-buy",
+        condition: "brand-new",
         delta: 40,
         stock: "5 in stock",
         returns: "15-day returns",
@@ -1053,7 +1044,6 @@ function buildOffers(seed: Seed): MerchantOffer[] {
     warranty: defaultWarranty(seed.brand, seed.condition),
     price: seed.price,
     shipping: 0,
-    cashback: cashback(seed.price, seed.retailer),
     dealUrl: seed.dealUrl,
     stock: seed.inStock ?? "In stock",
     returns: "30-day returns",
@@ -1072,7 +1062,6 @@ function buildOffers(seed: Seed): MerchantOffer[] {
         warranty: c.warranty ?? defaultWarranty(seed.brand, condition),
         price,
         shipping: c.shipping ?? 0,
-        cashback: cashback(price, c.merchant),
         dealUrl: RETAILERS[c.merchant].home,
         stock: c.stock ?? "In stock",
         returns: c.returns ?? "30-day returns",
@@ -1106,7 +1095,6 @@ export const MOCK_PRODUCTS: Product[] = SEEDS.map((seed, i) => {
     price: best.price,
     dealUrl: best.dealUrl,
     inStock: best.stock,
-    cashback: best.cashback,
     priceHistory: priceSeries(seed.trend[0], best.price, i + 1),
     specs: seed.specs.map(([label, value]) => ({ label, value })),
     offers,
