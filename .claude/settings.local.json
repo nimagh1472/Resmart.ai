@@ -138,7 +138,14 @@
       "Bash(curl -s http://localhost:3000/product/apple-mba-m2-16-512)",
       "Bash(curl -s -X POST http://localhost:3000/api/cashback-rates -H \"Content-Type: application/json\" -d '{\"rates\":{\"eBay\":5}}')",
       "Bash(curl -s -X POST http://localhost:3000/api/cashback-rates -H \"Content-Type: application/json\" -d '{\"rates\":{\"Best Buy\":1.5}}')",
-      "Bash(pkill -f \"next dev\")"
+      "Bash(pkill -f \"next dev\")",
+      "Bash(curl -s \"http://localhost:3000/api/search?q=coffee%20maker\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3000/api/search\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3000/api/search?q=%20%20%20asdkjaslkdj12312%20%20\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3000/api/search?q=coffee%20maker\")",
+      "Bash(taskkill //F //IM node.exe //FI \"WINDOWTITLE eq *\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 2 http://localhost:3000/api/search?q=test)",
+      "Bash(taskkill *)"
     ]
   }
 }

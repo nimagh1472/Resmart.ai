@@ -21,9 +21,8 @@ type SearchState =
   | { status: "ready"; query: string; data: SearchResult[] };
 
 /**
- * Fires `/api/search` (Google Custom Search) only on form submission —
- * never on keystroke — since Google's free tier is capped at 100
- * queries/day and typing would burn through it in seconds.
+ * Fires `/api/search` (DuckDuckGo-backed) only on form submission — never
+ * on keystroke — to avoid hammering the scraped endpoint while typing.
  */
 export function SearchInput({ className }: { className?: string }) {
   const [query, setQuery] = useState("");

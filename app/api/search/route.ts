@@ -3,13 +3,16 @@ import { NextResponse } from "next/server";
 /**
  * GET /api/search
  *
- * Thin wrapper around the Google Custom Search JSON API. Google's free tier
- * caps at 100 queries/day, so results are cached in-memory for 24h and a
- * daily counter stops outbound calls at 95 to leave headroom before the hard
- * cap. Cache and counter are per-process (module scope) and reset on deploy.
+ * Scrapes DuckDuckGo's HTML search endpoint (html.duckduckgo.com/html) since
+ * it requires no API key and has no request quota, unlike Google Custom
+ * Search. Results are cached in-memory for 24h per query to avoid hammering
+ * DuckDuckGo (which rate-limits/blocks scraping IPs that request too
+ * frequently). Cache is per-process (module scope) and resets on deploy.
  */
 const DAY_MS = 24 * 60 * 60 * 1000;
-const DAILY_QUOTA = 95;
+
+const USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
 type SearchResult = {
   title: string;
@@ -24,31 +27,7 @@ type CacheEntry = {
   expiresAt: number;
 };
 
-type GoogleSearchResponse = {
-  items?: {
-    title?: string;
-    link?: string;
-    snippet?: string;
-    displayLink?: string;
-    pagemap?: {
-      cse_image?: { src?: string }[];
-      cse_thumbnail?: { src?: string }[];
-    };
-  }[];
-};
-
 const cache = new Map<string, CacheEntry>();
-
-let dailyCount = 0;
-let dailyResetAt = Date.now() + DAY_MS;
-
-function getRemainingQuota() {
-  if (Date.now() > dailyResetAt) {
-    dailyCount = 0;
-    dailyResetAt = Date.now() + DAY_MS;
-  }
-  return DAILY_QUOTA - dailyCount;
-}
 
 /** Shape written by `app/api/merchant/products/route.ts`'s in-memory store. */
 type MerchantProduct = {
@@ -95,61 +74,96 @@ function getMerchantResults(q: string): (SearchResult & {
     }));
 }
 
+function decodeHtmlEntities(str: string): string {
+  return str
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&#x27;/g, "'");
+}
+
+function stripTags(html: string): string {
+  return decodeHtmlEntities(html.replace(/<[^>]+>/g, "")).trim();
+}
+
+/** DuckDuckGo's HTML endpoint routes result links through a `/l/?uddg=` redirect. */
+function extractRedirectedUrl(href: string): string {
+  try {
+    const url = new URL(href, "https://duckduckgo.com");
+    const uddg = url.searchParams.get("uddg");
+    return uddg ? decodeURIComponent(uddg) : href;
+  } catch {
+    return href;
+  }
+}
+
+function parseDuckDuckGoHtml(html: string): SearchResult[] {
+  const titleRe = /<a[^>]*class="result__a"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/g;
+  const snippetRe = /<a[^>]*class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;
+
+  // `result__a` and `result__snippet` anchors appear once per result block in
+  // the same order (ads included), so they're paired up positionally before
+  // ads get filtered out below.
+  const titleMatches = Array.from(html.matchAll(titleRe));
+  const snippets = Array.from(html.matchAll(snippetRe)).map((m) => stripTags(m[1]));
+
+  const results: SearchResult[] = [];
+  titleMatches.forEach((m, i) => {
+    const link = extractRedirectedUrl(m[1]);
+    const title = stripTags(m[2]);
+    if (!link || !title) return;
+
+    let hostname = "";
+    try {
+      hostname = new URL(link).hostname;
+    } catch {
+      return;
+    }
+    // Sponsored links (Bing ads served via duckduckgo.com/y.js) never resolve
+    // through the `uddg` redirect param, so they're left pointing back at
+    // duckduckgo.com — drop them to keep only organic results.
+    if (hostname === "duckduckgo.com") return;
+
+    results.push({
+      title,
+      link,
+      snippet: snippets[i] ?? "",
+      displayLink: hostname.replace(/^www\./, ""),
+      image: null,
+    });
+  });
+
+  return results;
+}
+
 async function getWebResults(q: string) {
   const cached = cache.get(q);
   if (cached && cached.expiresAt > Date.now()) {
-    return { data: cached.data, error: null as string | null, status: 200 };
+    return { data: cached.data, error: null as string | null };
   }
 
-  const remainingDailyQuota = getRemainingQuota();
-  if (remainingDailyQuota <= 0) {
-    return { data: [] as SearchResult[], error: "daily_quota_exceeded", status: 429 };
-  }
-
-  const apiKey = process.env.GOOGLE_SEARCH_API_KEY;
-  const engineId = process.env.GOOGLE_SEARCH_ENGINE_ID;
-  if (!apiKey || !engineId) {
-    return { data: [] as SearchResult[], error: "search_not_configured", status: 503 };
-  }
-
-  const url =
-    `https://www.googleapis.com/customsearch/v1` +
-    `?key=${encodeURIComponent(apiKey)}` +
-    `&cx=${encodeURIComponent(engineId)}` +
-    `&q=${encodeURIComponent(q)}`;
-
-  const maskedKey =
-    apiKey.length > 8 ? `${apiKey.slice(0, 4)}...${apiKey.slice(-4)}` : "****";
-  console.log(
-    "Google Search request:",
-    `key=${maskedKey}`,
-    `cx=${engineId}`,
-    `q=${q}`,
-  );
+  const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}`;
 
   try {
-    dailyCount += 1;
-    const res = await fetch(url);
+    const res = await fetch(url, {
+      headers: { "User-Agent": USER_AGENT },
+    });
+
     if (!res.ok) {
-      const errorBody = await res.json().catch(() => null);
-      console.error("Google Search Error:", res.status, JSON.stringify(errorBody));
-      return { data: [] as SearchResult[], error: "upstream_error", status: 502 };
+      console.error("DuckDuckGo search error:", res.status);
+      return { data: [] as SearchResult[], error: "upstream_error" };
     }
 
-    const json = (await res.json()) as GoogleSearchResponse;
-    const data: SearchResult[] = (json.items ?? []).map((item) => ({
-      title: item.title ?? "",
-      link: item.link ?? "",
-      snippet: item.snippet ?? "",
-      displayLink: item.displayLink ?? "",
-      image: item.pagemap?.cse_image?.[0]?.src ?? item.pagemap?.cse_thumbnail?.[0]?.src ?? null,
-    }));
+    const html = await res.text();
+    const data = parseDuckDuckGoHtml(html);
 
     cache.set(q, { data, expiresAt: Date.now() + DAY_MS });
-    return { data, error: null as string | null, status: 200 };
+    return { data, error: null as string | null };
   } catch (err) {
-    console.error("Google Search fetch failed:", err);
-    return { data: [] as SearchResult[], error: "fetch_failed", status: 502 };
+    console.error("DuckDuckGo search fetch failed:", err);
+    return { data: [] as SearchResult[], error: "fetch_failed" };
   }
 }
 
@@ -162,19 +176,19 @@ export async function GET(request: Request) {
   }
 
   // Internal listings are always fresh and never rate-limited, so they're
-  // fetched independently of Google's cache/quota/availability — a merchant
-  // match still surfaces even when the web search leg fails.
+  // fetched independently of the web search leg — a merchant match still
+  // surfaces even when DuckDuckGo fails or is blocked.
   const internalResults = getMerchantResults(q);
   const web = await getWebResults(q);
 
-  // Google outages (403/quota/misconfiguration) never fail the request — they
-  // degrade to an empty webResults array so internal results still return 200.
+  // DuckDuckGo failures (blocked, network error, malformed HTML) never fail
+  // the request — they degrade to an empty webResults array so internal
+  // results still return 200.
   return NextResponse.json({
-    source: "combined",
-    remainingDailyQuota: getRemainingQuota(),
+    source: "web_search",
     ...(web.error ? { webError: web.error } : {}),
-    internalResults,
     webResults: web.data,
+    internalResults,
     // Internal ReSmart merchants take priority over the open web.
     data: [...internalResults, ...web.data],
   });
