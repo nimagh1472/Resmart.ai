@@ -30,7 +30,8 @@ export type Product = {
   image: string | null;
   url: string;
   store: Store;
-  condition: string | null;
+  /** Always set — "New" listings never survive `detectCondition`'s hard filter, so every returned item is one of the four pre-owned categories. */
+  condition: Condition | null;
 };
 
 function requireApiKey(): string {
@@ -75,6 +76,7 @@ type RawShoppingItem = {
   imageUrl?: string;
   productId?: string;
   position?: number;
+  condition?: string;
 };
 
 function normalizeStore(source: string | undefined): Store | null {
@@ -84,6 +86,40 @@ function normalizeStore(source: string | undefined): Store | null {
   if (/best\s*buy/i.test(source)) return "Best Buy";
   if (/walmart/i.test(source)) return "Walmart";
   if (/target/i.test(source)) return "Target";
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Condition targeting — ReSmart only lists pre-owned deals (open box,
+// refurbished, like new, pre-owned), never brand-new inventory. The query
+// itself is steered toward those terms, but Serper still mixes in brand-new
+// listings, so every result is re-checked against its title (and `condition`
+// field, when Serper supplies one) and dropped unless it clearly matches one
+// of the four categories below.
+// ---------------------------------------------------------------------------
+
+/** Appended to every outbound query so Serper Shopping favors pre-owned inventory. */
+const CONDITION_QUERY_SUFFIX = '("open box" OR "refurbished" OR "like new" OR "pre-owned")';
+
+function buildConditionQuery(query: string): string {
+  return `${query} ${CONDITION_QUERY_SUFFIX}`;
+}
+
+/** The only condition labels ReSmart ever shows on a listing card. */
+export type Condition = "Open Box" | "Refurbished" | "Like New" | "Pre-Owned";
+
+/**
+ * Classifies a listing's condition from its title and (when present)
+ * Serper's own `condition` field. Returns null for anything that doesn't
+ * clearly read as pre-owned — including plain "new"/"brand new" listings —
+ * so the caller can drop it rather than guess.
+ */
+function detectCondition(title: string, rawCondition?: string): Condition | null {
+  const text = `${rawCondition ?? ""} ${title}`.toLowerCase();
+  if (/\bopen box\b/.test(text)) return "Open Box";
+  if (/\b(certified refurbished|refurbished|refurb(?:ished)?|renewed)\b/.test(text)) return "Refurbished";
+  if (/\blike new\b/.test(text)) return "Like New";
+  if (/\b(pre-?owned|used)\b/.test(text)) return "Pre-Owned";
   return null;
 }
 
@@ -97,7 +133,7 @@ async function fetchShoppingResults(query: string): Promise<Product[]> {
       "X-API-KEY": requireApiKey(),
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ q: query }),
+    body: JSON.stringify({ q: buildConditionQuery(query) }),
   });
 
   if (!res.ok) {
@@ -112,16 +148,21 @@ async function fetchShoppingResults(query: string): Promise<Product[]> {
     const store = normalizeStore(item.source);
     if (!store) return;
 
+    const title = String(item.title ?? "Untitled listing");
+    const condition = detectCondition(title, item.condition);
+    // Hard filter: no clear pre-owned signal (or an explicit "new") means it's dropped, never shown as "unknown".
+    if (!condition) return;
+
     const price = parsePrice(item.price);
     items.push({
       id: `${store.toLowerCase().replace(/\s+/g, "")}-${item.productId ?? item.position ?? i}`,
-      title: String(item.title ?? "Untitled listing"),
+      title,
       price,
       originalPrice: null,
       image: item.imageUrl ?? null,
       url: String(item.link ?? "#"),
       store,
-      condition: null,
+      condition,
     });
   });
 
