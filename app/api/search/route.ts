@@ -3,16 +3,12 @@ import { NextResponse } from "next/server";
 /**
  * GET /api/search
  *
- * Scrapes DuckDuckGo's HTML search endpoint (html.duckduckgo.com/html) since
- * it requires no API key and has no request quota, unlike Google Custom
- * Search. Results are cached in-memory for 24h per query to avoid hammering
- * DuckDuckGo (which rate-limits/blocks scraping IPs that request too
- * frequently). Cache is per-process (module scope) and resets on deploy.
+ * Fetches web results from the Serper API (google.serper.dev/search), which
+ * proxies real Google search results and requires SERPER_API_KEY. Results
+ * are cached in-memory for 24h per query to stay within Serper's request
+ * quota. Cache is per-process (module scope) and resets on deploy.
  */
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-const USER_AGENT =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
 type SearchResult = {
   title: string;
@@ -74,66 +70,36 @@ function getMerchantResults(q: string): (SearchResult & {
     }));
 }
 
-function decodeHtmlEntities(str: string): string {
-  return str
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;|&apos;/g, "'")
-    .replace(/&#x27;/g, "'");
-}
+type SerperOrganicResult = {
+  title?: string;
+  link?: string;
+  snippet?: string;
+  snippet_highlight?: string[];
+};
 
-function stripTags(html: string): string {
-  return decodeHtmlEntities(html.replace(/<[^>]+>/g, "")).trim();
-}
-
-/** DuckDuckGo's HTML endpoint routes result links through a `/l/?uddg=` redirect. */
-function extractRedirectedUrl(href: string): string {
-  try {
-    const url = new URL(href, "https://duckduckgo.com");
-    const uddg = url.searchParams.get("uddg");
-    return uddg ? decodeURIComponent(uddg) : href;
-  } catch {
-    return href;
-  }
-}
-
-function parseDuckDuckGoHtml(html: string): SearchResult[] {
-  const titleRe = /<a[^>]*class="result__a"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/g;
-  const snippetRe = /<a[^>]*class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;
-
-  // `result__a` and `result__snippet` anchors appear once per result block in
-  // the same order (ads included), so they're paired up positionally before
-  // ads get filtered out below.
-  const titleMatches = Array.from(html.matchAll(titleRe));
-  const snippets = Array.from(html.matchAll(snippetRe)).map((m) => stripTags(m[1]));
-
+function parseSerperResults(organic: SerperOrganicResult[]): SearchResult[] {
   const results: SearchResult[] = [];
-  titleMatches.forEach((m, i) => {
-    const link = extractRedirectedUrl(m[1]);
-    const title = stripTags(m[2]);
-    if (!link || !title) return;
+
+  for (const item of organic) {
+    const title = item.title?.trim();
+    const link = item.link?.trim();
+    if (!title || !link) continue;
 
     let hostname = "";
     try {
       hostname = new URL(link).hostname;
     } catch {
-      return;
+      continue;
     }
-    // Sponsored links (Bing ads served via duckduckgo.com/y.js) never resolve
-    // through the `uddg` redirect param, so they're left pointing back at
-    // duckduckgo.com — drop them to keep only organic results.
-    if (hostname === "duckduckgo.com") return;
 
     results.push({
       title,
       link,
-      snippet: snippets[i] ?? "",
+      snippet: item.snippet ?? item.snippet_highlight?.join(" ") ?? "",
       displayLink: hostname.replace(/^www\./, ""),
       image: null,
     });
-  });
+  }
 
   return results;
 }
@@ -144,25 +110,34 @@ async function getWebResults(q: string) {
     return { data: cached.data, error: null as string | null };
   }
 
-  const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}`;
+  const apiKey = process.env.SERPER_API_KEY;
+  if (!apiKey) {
+    console.error("Serper search error: SERPER_API_KEY is not set");
+    return { data: [] as SearchResult[], error: "missing_api_key" };
+  }
 
   try {
-    const res = await fetch(url, {
-      headers: { "User-Agent": USER_AGENT },
+    const res = await fetch("https://google.serper.dev/search", {
+      method: "POST",
+      headers: {
+        "X-API-KEY": apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ q }),
     });
 
     if (!res.ok) {
-      console.error("DuckDuckGo search error:", res.status);
+      console.error("Serper search error:", res.status);
       return { data: [] as SearchResult[], error: "upstream_error" };
     }
 
-    const html = await res.text();
-    const data = parseDuckDuckGoHtml(html);
+    const json = await res.json();
+    const data = parseSerperResults(json.organic ?? []);
 
     cache.set(q, { data, expiresAt: Date.now() + DAY_MS });
     return { data, error: null as string | null };
   } catch (err) {
-    console.error("DuckDuckGo search fetch failed:", err);
+    console.error("Serper search fetch failed:", err);
     return { data: [] as SearchResult[], error: "fetch_failed" };
   }
 }
@@ -177,15 +152,15 @@ export async function GET(request: Request) {
 
   // Internal listings are always fresh and never rate-limited, so they're
   // fetched independently of the web search leg — a merchant match still
-  // surfaces even when DuckDuckGo fails or is blocked.
+  // surfaces even when Serper fails or is unavailable.
   const internalResults = getMerchantResults(q);
   const web = await getWebResults(q);
 
-  // DuckDuckGo failures (blocked, network error, malformed HTML) never fail
+  // Serper failures (missing key, network error, upstream error) never fail
   // the request — they degrade to an empty webResults array so internal
   // results still return 200.
   return NextResponse.json({
-    source: "web_search",
+    source: "serper_web_search",
     ...(web.error ? { webError: web.error } : {}),
     webResults: web.data,
     internalResults,
