@@ -32,7 +32,12 @@ export type Product = {
   store: Store;
   /** Always set — "New" listings never survive `detectCondition`'s hard filter, so every returned item is one of the four pre-owned categories. */
   condition: Condition | null;
+  /** Set only for stores with physical retail locations when a zip code was searched — e.g. "Pickup near 10001". Null for online-only stores (eBay, Amazon) or when no zip was given. */
+  pickupLabel: string | null;
 };
+
+/** Stores with physical retail locations, so local pickup is plausible. eBay and Amazon are online-only. */
+const PICKUP_ELIGIBLE_STORES = new Set<Store>(["Best Buy", "Walmart", "Target"]);
 
 function requireApiKey(): string {
   const apiKey = process.env.SERPER_API_KEY;
@@ -197,14 +202,16 @@ function detectCondition(title: string, rawCondition?: string): Condition | null
 }
 
 /** Runs a single Serper Shopping call for an already-cleaned query and normalizes the response. */
-async function runShoppingQuery(query: string): Promise<Product[]> {
+async function runShoppingQuery(query: string, zipCode?: string): Promise<Product[]> {
   const res = await fetch("https://google.serper.dev/shopping", {
     method: "POST",
     headers: {
       "X-API-KEY": requireApiKey(),
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ q: buildConditionQuery(query) }),
+    // `location` biases Serper's Google Shopping results toward that area — passing the searched zip
+    // lets local inventory/pricing surface instead of a generic nationwide result set.
+    body: JSON.stringify({ q: buildConditionQuery(query), ...(zipCode ? { location: zipCode } : {}) }),
   });
 
   if (!res.ok) {
@@ -234,18 +241,24 @@ async function runShoppingQuery(query: string): Promise<Product[]> {
       url: String(item.link ?? "#"),
       store,
       condition,
+      pickupLabel: zipCode && PICKUP_ELIGIBLE_STORES.has(store) ? `Pickup near ${zipCode}` : null,
     });
   });
 
   return items;
 }
 
-async function fetchShoppingResults(rawQuery: string): Promise<Product[]> {
-  const cached = shoppingCache.get(rawQuery);
+function shoppingCacheKey(rawQuery: string, zipCode?: string): string {
+  return zipCode ? `${rawQuery}::${zipCode}` : rawQuery;
+}
+
+async function fetchShoppingResults(rawQuery: string, zipCode?: string): Promise<Product[]> {
+  const cacheKey = shoppingCacheKey(rawQuery, zipCode);
+  const cached = shoppingCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.items;
 
   const cleaned = sanitizeSearchQuery(rawQuery) || rawQuery;
-  let items = await runShoppingQuery(cleaned);
+  let items = await runShoppingQuery(cleaned, zipCode);
 
   // The cleaned query can still be too specific to match anything (rare
   // model numbers, uncommon phrasing) — retry once with just its core
@@ -253,11 +266,11 @@ async function fetchShoppingResults(rawQuery: string): Promise<Product[]> {
   if (items.length === 0) {
     const simplified = simplifySearchQuery(cleaned);
     if (simplified && simplified.toLowerCase() !== cleaned.toLowerCase()) {
-      items = await runShoppingQuery(simplified);
+      items = await runShoppingQuery(simplified, zipCode);
     }
   }
 
-  shoppingCache.set(rawQuery, { items, expiresAt: Date.now() + CACHE_MS });
+  shoppingCache.set(cacheKey, { items, expiresAt: Date.now() + CACHE_MS });
   return items;
 }
 
@@ -292,6 +305,7 @@ function shuffle<T>(items: T[]): T[] {
 export async function fetchAllStores(
   query: string,
   limit = 24,
+  zipCode?: string,
 ): Promise<{ items: Product[]; errors: StoreError[] }> {
   const perStoreLimit = Math.min(
     MAX_PER_STORE_RESULTS,
@@ -299,7 +313,7 @@ export async function fetchAllStores(
   );
 
   try {
-    const raw = await fetchShoppingResults(query);
+    const raw = await fetchShoppingResults(query, zipCode);
 
     const byStore = new Map<Store, Product[]>();
     for (const item of raw) {
@@ -326,11 +340,12 @@ export async function fetchAllStores(
 export async function fetchDiverseListings(
   categories: string[] = DEFAULT_SEARCH_CATEGORIES,
   limit = 24,
+  zipCode?: string,
 ): Promise<{ items: Product[]; errors: StoreError[] }> {
   const perCategoryLimit = Math.max(4, Math.ceil(limit / categories.length));
 
   const results = await Promise.all(
-    categories.map((category) => fetchAllStores(category, perCategoryLimit)),
+    categories.map((category) => fetchAllStores(category, perCategoryLimit, zipCode)),
   );
 
   const seen = new Set<string>();

@@ -32,12 +32,16 @@ type Fulfillment = (typeof VALID_FULFILLMENT)[number];
  *                There's no "brand-new" value here — this pipeline never
  *                surfaces brand-new inventory (see lib/marketplace.ts); browse
  *                the curated catalog via /api/products for that.
- *   fulfillment  direct-shipping | in-store-pickup — every listing here is an
- *                external retailer link (ship-to-you), so "in-store-pickup"
- *                always returns zero results with `fulfillmentUnavailable: true`
- *                rather than silently omitting listings.
- *   zip          reserved for local-pickup matching once in-store listings
- *                exist in this feed; currently has no effect.
+ *   fulfillment  direct-shipping | in-store-pickup — "in-store-pickup" prioritizes
+ *                groups that have a deal from a store with physical locations
+ *                (Best Buy, Walmart, Target) tagged "Pickup near {zip}", and
+ *                drops groups with no such deal. If that leaves zero groups
+ *                (no local pickup stock for this query), it falls back to the
+ *                full shipping-eligible result set with `fulfillmentFallback: true`
+ *                rather than returning an empty page.
+ *   zip          5-digit zip code. Passed to Serper as location context so
+ *                results skew local, and used to build each pickup-eligible
+ *                deal's "Pickup near {zip}" label.
  *
  * Each store is queried strictly in parallel (`Promise.allSettled` inside
  * `fetchAllStores`/`fetchDiverseListings`) with a 3s per-request timeout, so
@@ -75,22 +79,7 @@ export async function GET(request: Request) {
     );
   }
 
-  // Every listing here is an external retailer link — none of them are local
-  // pickup, so asking for in-store pickup always comes back empty. Said
-  // explicitly via `fulfillmentUnavailable` rather than an unexplained
-  // zero-result search, which would read as "nothing matched your query."
-  if (fulfillmentRaw === "in-store-pickup") {
-    return NextResponse.json(
-      {
-        source: "serper-shopping",
-        query: q || "diverse-mix",
-        count: 0,
-        items: [],
-        fulfillmentUnavailable: true,
-      },
-      { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" } },
-    );
-  }
+  const zip = searchParams.get("zip")?.replace(/[^0-9]/g, "").slice(0, 5) || undefined;
 
   // Fetch more raw listings than `limit` so grouping — which collapses
   // several listings into one card — still has enough material to return
@@ -99,8 +88,8 @@ export async function GET(request: Request) {
 
   try {
     const { items, errors } = q
-      ? await fetchAllStores(q, rawLimit)
-      : await fetchDiverseListings(DEFAULT_SEARCH_CATEGORIES, rawLimit);
+      ? await fetchAllStores(q, rawLimit, zip)
+      : await fetchDiverseListings(DEFAULT_SEARCH_CATEGORIES, rawLimit, zip);
 
     let groups = groupListings(items);
     if (condition) {
@@ -111,6 +100,20 @@ export async function GET(request: Request) {
         }))
         .filter((group) => group.deals.length > 0);
     }
+
+    // "in-store-pickup" prioritizes groups with at least one pickup-eligible
+    // deal; if none of today's results have local stock, fall back to the
+    // full (shipping) result set rather than showing an empty page.
+    let fulfillmentFallback = false;
+    if (fulfillmentRaw === "in-store-pickup") {
+      const pickupGroups = groups.filter((group) => group.deals.some((deal) => deal.pickupLabel));
+      if (pickupGroups.length > 0) {
+        groups = pickupGroups;
+      } else {
+        fulfillmentFallback = true;
+      }
+    }
+
     groups = groups.slice(0, limit);
 
     return NextResponse.json(
@@ -119,6 +122,7 @@ export async function GET(request: Request) {
         query: q || "diverse-mix",
         count: groups.length,
         items: groups,
+        ...(fulfillmentFallback ? { fulfillmentFallback: true } : {}),
         ...(errors.length ? { partialErrors: errors } : {}),
       },
       { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" } },
