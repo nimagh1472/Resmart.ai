@@ -360,7 +360,7 @@ async function LiveProductView({
     return <LiveProductFallback title={title} />;
   }
 
-  // Everything below reads fields the RapidAPI feeds don't formally guarantee
+  // Everything below reads fields the Serper Shopping feed doesn't formally guarantee
   // (a store's shape can drift without notice). Rather than let a malformed
   // listing crash the whole page with a 500, fall back to a minimal view
   // built from the title alone — the one thing guaranteed to have reached

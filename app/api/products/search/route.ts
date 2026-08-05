@@ -10,7 +10,7 @@ import {
  * GET /api/products/search
  *
  * Live inventory feed aggregated across eBay, Amazon, Best Buy, Walmart, and
- * Target via RapidAPI. Raw per-store listings are normalized and clustered
+ * Target via Serper's Shopping API. Raw per-store listings are normalized and clustered
  * by core title/model similarity (`groupListings`) into unified product
  * cards — each card's `deals` array holds one offer per retailer carrying
  * that product, with its own price, condition, and purchase URL, so the
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(
       {
-        source: "rapidapi-multi",
+        source: "serper-shopping",
         query: q || "diverse-mix",
         count: groups.length,
         items: groups,

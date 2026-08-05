@@ -1,9 +1,9 @@
 /**
  * Reference data for live marketplace listings (`lib/marketplace.ts`).
  *
- * The RapidAPI feeds don't expose structured shipping, pickup, or return
- * data per listing — `condition` is the only field eBay reliably fills in,
- * and Amazon/Best Buy/Walmart return `null` for it. `perks` and `warranty`
+ * Serper Shopping doesn't expose structured shipping, pickup, condition, or
+ * return data per listing — every store's `condition` comes back `null`.
+ * `perks` and `warranty`
  * below are each retailer's general published policy, not a per-listing
  * guarantee — shown as "typically offered" rather than confirmed for the
  * specific item, and worth re-verifying on the retailer's own page.

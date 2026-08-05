@@ -1,21 +1,10 @@
 /**
  * Live listing feed aggregated across eBay, Amazon, Best Buy, Walmart, and
- * Target via RapidAPI. Shared by the `/api/products/search` route and the
- * homepage server component so both hit the same normalization logic.
- *
- * Best Buy, Walmart, and Target field mappings are best-effort: their
- * RapidAPI docs are gated behind login, so `pick()` tries several common
- * key-name variants per field. If a store's cards render blank/zero, inspect
- * a live response and add the real key to that store's candidate list below.
+ * Target via Serper's Shopping API (a single combined search per query,
+ * bucketed by retailer below) rather than five separate per-store APIs.
+ * Shared by the `/api/products/search` route and the homepage server
+ * component so both hit the same normalization logic.
  */
-
-const RAPIDAPI_HOSTS = {
-  ebay: "real-time-ebay-data.p.rapidapi.com",
-  amazon: "real-time-amazon-data.p.rapidapi.com",
-  bestBuy: "best-buy-api.p.rapidapi.com",
-  walmart: "walmart-data.p.rapidapi.com",
-  target: "target-com-shopping-api.p.rapidapi.com",
-} as const;
 
 /**
  * Curated mix of high-interest categories spanning gaming, phones, laptops,
@@ -45,53 +34,16 @@ export type Product = {
 };
 
 function requireApiKey(): string {
-  const apiKey = process.env.RAPIDAPI_KEY;
-  if (!apiKey) throw new Error("RAPIDAPI_KEY is not configured.");
+  const apiKey = process.env.SERPER_API_KEY;
+  if (!apiKey) throw new Error("SERPER_API_KEY is not configured.");
   return apiKey;
 }
 
-/**
- * A slow store must never hold up the whole search — abort and let the
- * others win. 3s was too aggressive in practice: Walmart's endpoint alone
- * regularly takes 5-14s to respond, so at 3s it failed on almost every
- * request and the aggregator quietly degraded to eBay-only results. 8s
- * covers the slow stores while still bounding worst-case latency, and an
- * hour of caching (`CACHE_REVALIDATE_SECONDS`) means only the first request
- * per query pays it.
- */
-const REQUEST_TIMEOUT_MS = 8000;
-
-/** Every store fetch is cached for an hour so a repeated query is sub-second. */
+/** Every shopping search is cached for an hour so a repeated query is sub-second and stays within Serper's request quota. */
 const CACHE_REVALIDATE_SECONDS = 3600;
+const CACHE_MS = CACHE_REVALIDATE_SECONDS * 1000;
 
-async function rapidApiGet(host: string, path: string): Promise<unknown> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
-  try {
-    const response = await fetch(`https://${host}${path}`, {
-      headers: {
-        "x-rapidapi-key": requireApiKey(),
-        "x-rapidapi-host": host,
-      },
-      signal: controller.signal,
-      next: { revalidate: CACHE_REVALIDATE_SECONDS },
-    });
-
-    if (!response.ok) {
-      throw new Error(`${host} request failed with status ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    if ((error as Error).name === "AbortError") {
-      throw new Error(`${host} request timed out after ${REQUEST_TIMEOUT_MS}ms`);
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
+const shoppingCache = new Map<string, { items: Product[]; expiresAt: number }>();
 
 /** Parses "$1,299.00"-style strings (or already-numeric values) into a number. */
 function parsePrice(raw: unknown): number {
@@ -101,261 +53,80 @@ function parsePrice(raw: unknown): number {
   return Number(cleaned) || 0;
 }
 
-/** Returns the first defined value among the candidate keys on `obj`. */
-function pick(obj: Record<string, unknown>, keys: string[]): unknown {
-  for (const key of keys) {
-    if (obj[key] !== undefined && obj[key] !== null) return obj[key];
-  }
-  return undefined;
-}
-
-/** An original price only counts if it's a real discount over the current price. */
-function normalizeOriginalPrice(price: number, original: number | null): number | null {
-  return original !== null && original > price ? original : null;
-}
-
 // ---------------------------------------------------------------------------
-// eBay — Real-Time eBay Data
+// Serper Shopping — google.serper.dev/shopping
+//
+// One combined search returns listings across many merchants at once, so
+// instead of five separate per-store APIs, `normalizeStore` maps each
+// result's free-text `source` field (e.g. "Amazon.com", "Best Buy") onto one
+// of the five retailers ReSmart tracks; anything else (Newegg, small
+// marketplace sellers, etc.) is dropped rather than shown as an unbranded
+// store. Serper doesn't reliably expose a struck-through list price on
+// shopping results, so `originalPrice` is always null here — no discount
+// badge is shown for these listings rather than guessing at a field that
+// isn't actually there.
 // ---------------------------------------------------------------------------
 
-type RawEbayListing = {
-  itemId?: string;
+type RawShoppingItem = {
   title?: string;
-  price?: { value?: string | number };
-  marketingPrice?: { originalPrice?: { value?: string | number } };
-  image?: { imageUrl?: string };
-  itemWebUrl?: string;
-  condition?: string;
+  source?: string;
+  link?: string;
+  price?: string | number;
+  imageUrl?: string;
+  productId?: string;
+  position?: number;
 };
 
-export async function fetchEbayListings(query: string, limit = 20): Promise<Product[]> {
-  const json = (await rapidApiGet(
-    RAPIDAPI_HOSTS.ebay,
-    `/ebay_search?q=${encodeURIComponent(query)}`,
-  )) as { itemSummaries?: unknown[] };
+function normalizeStore(source: string | undefined): Store | null {
+  if (!source) return null;
+  if (/ebay/i.test(source)) return "eBay";
+  if (/amazon/i.test(source)) return "Amazon";
+  if (/best\s*buy/i.test(source)) return "Best Buy";
+  if (/walmart/i.test(source)) return "Walmart";
+  if (/target/i.test(source)) return "Target";
+  return null;
+}
 
-  const raw = json.itemSummaries ?? [];
+async function fetchShoppingResults(query: string): Promise<Product[]> {
+  const cached = shoppingCache.get(query);
+  if (cached && cached.expiresAt > Date.now()) return cached.items;
 
-  return raw.slice(0, limit).map((entry, i) => {
-    const item = entry as RawEbayListing;
-    const price = Number(item.price?.value) || 0;
-    const originalPrice = item.marketingPrice?.originalPrice?.value
-      ? Number(item.marketingPrice.originalPrice.value)
-      : null;
+  const res = await fetch("https://google.serper.dev/shopping", {
+    method: "POST",
+    headers: {
+      "X-API-KEY": requireApiKey(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ q: query }),
+  });
 
-    return {
-      id: `ebay-${item.itemId ?? i}`,
+  if (!res.ok) {
+    throw new Error(`Serper shopping request failed with status ${res.status}`);
+  }
+
+  const json = (await res.json()) as { shopping?: RawShoppingItem[] };
+  const raw = json.shopping ?? [];
+
+  const items: Product[] = [];
+  raw.forEach((item, i) => {
+    const store = normalizeStore(item.source);
+    if (!store) return;
+
+    const price = parsePrice(item.price);
+    items.push({
+      id: `${store.toLowerCase().replace(/\s+/g, "")}-${item.productId ?? item.position ?? i}`,
       title: String(item.title ?? "Untitled listing"),
       price,
-      originalPrice: normalizeOriginalPrice(price, originalPrice),
-      image: item.image?.imageUrl ?? null,
-      url: String(item.itemWebUrl ?? "#"),
-      store: "eBay",
-      condition: item.condition ?? "Not specified",
-    };
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Amazon — Real-Time Amazon Data
-// ---------------------------------------------------------------------------
-
-type RawAmazonListing = {
-  asin?: string;
-  product_title?: string;
-  product_price?: string | number;
-  product_original_price?: string | number | null;
-  product_photo?: string;
-  product_url?: string;
-};
-
-export async function fetchAmazonListings(query: string, limit = 20): Promise<Product[]> {
-  const json = (await rapidApiGet(
-    RAPIDAPI_HOSTS.amazon,
-    `/search?query=${encodeURIComponent(query)}&country=US&page=1`,
-  )) as { data?: { products?: unknown[] } };
-
-  const raw = json.data?.products ?? [];
-
-  return raw.slice(0, limit).map((entry, i) => {
-    const item = entry as RawAmazonListing;
-    const price = parsePrice(item.product_price);
-    const originalPrice = item.product_original_price ? parsePrice(item.product_original_price) : null;
-
-    return {
-      id: `amazon-${item.asin ?? i}`,
-      title: String(item.product_title ?? "Untitled listing"),
-      price,
-      originalPrice: normalizeOriginalPrice(price, originalPrice),
-      image: item.product_photo ?? null,
-      url: String(item.product_url ?? "#"),
-      store: "Amazon",
+      originalPrice: null,
+      image: item.imageUrl ?? null,
+      url: String(item.link ?? "#"),
+      store,
       condition: null,
-    };
+    });
   });
-}
 
-// ---------------------------------------------------------------------------
-// Best Buy — Best Buy Api
-//
-// This RapidAPI listing is a Crawlbase-backed live scrape of bestbuy.com
-// rather than an official product API. The search term param is `st`. On
-// failure it returns HTTP 200 with a body shaped like
-// { original_status, cb_status, body } instead of a normal error status —
-// bestbuy.com's anti-bot layer returns 429/613 to the crawler fairly often,
-// which is outside this app's control. That's detected below and surfaced
-// as a normal thrown error so it lands in `partialErrors` like any other
-// failed store instead of silently returning zero results.
-//
-// The listings themselves live under `body.products` (confirmed against a
-// live response), not at the top level, and each item's price is a nested
-// object (`{ currentPrice, rawPrice, originalPrice }` as formatted/raw
-// strings) rather than a flat field — both were previously mismatched, which
-// silently produced zero Best Buy results every time instead of an error.
-// ---------------------------------------------------------------------------
-
-export async function fetchBestBuyListings(query: string, limit = 20): Promise<Product[]> {
-  const json = (await rapidApiGet(
-    RAPIDAPI_HOSTS.bestBuy,
-    `/search?st=${encodeURIComponent(query)}`,
-  )) as Record<string, unknown>;
-
-  if (typeof json.cb_status === "number" && json.cb_status !== 200) {
-    throw new Error(`Best Buy crawl failed with upstream status ${json.cb_status}`);
-  }
-
-  const body = (json.body as Record<string, unknown>) ?? json;
-  const raw = (pick(body, ["products", "results", "data"]) as unknown[]) ?? [];
-
-  return raw.slice(0, limit).map((entry, i) => {
-    const item = entry as Record<string, unknown>;
-    const priceInfo = pick(item, ["price"]);
-    const priceObj =
-      priceInfo && typeof priceInfo === "object" ? (priceInfo as Record<string, unknown>) : null;
-
-    const price = parsePrice(
-      priceObj
-        ? pick(priceObj, ["rawPrice", "currentPrice"])
-        : pick(item, ["salePrice", "price", "currentPrice"]),
-    );
-    const originalRaw = priceObj
-      ? pick(priceObj, ["originalPrice"])
-      : pick(item, ["regularPrice", "listPrice", "originalPrice", "wasPrice"]);
-    const originalPrice = originalRaw != null && originalRaw !== "" ? parsePrice(originalRaw) : null;
-
-    // `sku` frequently comes back as an empty string rather than absent, and
-    // `pick` only treats null/undefined as missing — fall back on falsiness
-    // here so every listing doesn't collapse onto the same "bestbuy-" id.
-    const id = pick(item, ["sku", "id", "productId"]) || i;
-
-    return {
-      id: `bestbuy-${id}`,
-      title: String(pick(item, ["name", "title", "productName"]) ?? "Untitled listing"),
-      price,
-      originalPrice: normalizeOriginalPrice(price, originalPrice),
-      image: (pick(item, ["image", "thumbnailImage", "imageUrl", "largeImage"]) as string) ?? null,
-      url: String(pick(item, ["url", "productUrl", "link", "dotComUrl"]) ?? "#"),
-      store: "Best Buy",
-      condition: null,
-    };
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Walmart — Walmart Data
-//
-// The search term param is `q` (not `query`). Results come back as
-// `searchResult`, an array of pages each holding an array of items, so it's
-// flattened before mapping. Price/original-price live under `priceInfo`
-// (`linePrice` / `wasPrice`) as formatted strings; there's no bare item id,
-// so one is extracted from the trailing numeric segment of `productLink`.
-// ---------------------------------------------------------------------------
-
-function extractWalmartId(productLink: unknown, fallback: number): string {
-  if (typeof productLink === "string") {
-    const match = productLink.match(/\/(\d+)(?:[/?]|$)/);
-    if (match) return match[1];
-  }
-  return String(fallback);
-}
-
-export async function fetchWalmartListings(query: string, limit = 20): Promise<Product[]> {
-  const json = (await rapidApiGet(
-    RAPIDAPI_HOSTS.walmart,
-    `/search?q=${encodeURIComponent(query)}&page=1`,
-  )) as Record<string, unknown>;
-
-  const pages = (json.searchResult as unknown[][]) ?? [];
-  const raw = pages.flat();
-
-  return raw.slice(0, limit).map((entry, i) => {
-    const item = entry as Record<string, unknown>;
-    const priceInfo = item.priceInfo as Record<string, unknown> | undefined;
-    const price = parsePrice(pick(item, ["price"]) ?? priceInfo?.linePrice);
-    const originalRaw = priceInfo?.wasPrice;
-    const originalPrice = originalRaw != null ? parsePrice(originalRaw) : null;
-
-    return {
-      id: `walmart-${extractWalmartId(item.productLink, i)}`,
-      title: String(pick(item, ["name", "title"]) ?? "Untitled listing"),
-      price,
-      originalPrice: normalizeOriginalPrice(price, originalPrice),
-      image: (pick(item, ["image", "thumbnailUrl", "imageUrl"]) as string) ?? null,
-      url: String(pick(item, ["productLink", "link", "url"]) ?? "#"),
-      store: "Walmart",
-      condition: null,
-    };
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Target — Target.com Shopping API
-//
-// This RapidAPI listing mirrors Target's internal store-scoped search
-// endpoint, which requires a `store_id` to resolve local pricing and
-// availability. `TARGET_STORE_ID` lets an operator pin a specific store;
-// unset, it falls back to a widely-used default id from this API's own
-// examples. As with Best Buy and Walmart above, exact response field names
-// aren't publicly documented, so `pick()` tries several common variants.
-// ---------------------------------------------------------------------------
-
-const DEFAULT_TARGET_STORE_ID = "3991";
-
-export async function fetchTargetListings(query: string, limit = 20): Promise<Product[]> {
-  const storeId = process.env.TARGET_STORE_ID || DEFAULT_TARGET_STORE_ID;
-  const json = (await rapidApiGet(
-    RAPIDAPI_HOSTS.target,
-    `/product_search?store_id=${encodeURIComponent(storeId)}&keyword=${encodeURIComponent(query)}&offset=0&count=${limit}`,
-  )) as Record<string, unknown>;
-
-  const raw = (pick(json, ["products", "results", "data", "items"]) as unknown[]) ?? [];
-
-  return raw.slice(0, limit).map((entry, i) => {
-    const item = entry as Record<string, unknown>;
-    const priceInfo = (pick(item, ["price", "priceInfo"]) as Record<string, unknown>) ?? {};
-    const price = parsePrice(
-      pick(priceInfo, ["current_retail", "price", "formatted_current_price"]) ??
-        pick(item, ["price"]),
-    );
-    const originalRaw = pick(priceInfo, [
-      "reg_retail",
-      "original_price",
-      "formatted_comparison_price",
-    ]);
-    const originalPrice = originalRaw != null ? parsePrice(originalRaw) : null;
-    const id = pick(item, ["tcin", "id", "productId"]);
-
-    return {
-      id: `target-${id ?? i}`,
-      title: String(pick(item, ["title", "name", "product_description"]) ?? "Untitled listing"),
-      price,
-      originalPrice: normalizeOriginalPrice(price, originalPrice),
-      image: (pick(item, ["image", "thumbnail", "imageUrl"]) as string) ?? null,
-      url: String(pick(item, ["url", "productUrl", "link"]) ?? "#"),
-      store: "Target",
-      condition: null,
-    };
-  });
+  shoppingCache.set(query, { items, expiresAt: Date.now() + CACHE_MS });
+  return items;
 }
 
 // ---------------------------------------------------------------------------
@@ -364,7 +135,7 @@ export async function fetchTargetListings(query: string, limit = 20): Promise<Pr
 
 export type StoreError = { store: Store; message: string };
 
-/** Hard ceiling per store per query — keeps each API call fast and each feed high-signal. */
+/** Hard ceiling per store per query — keeps each feed high-signal. */
 const MIN_PER_STORE_RESULTS = 8;
 const MAX_PER_STORE_RESULTS = 10;
 
@@ -380,11 +151,11 @@ function shuffle<T>(items: T[]): T[] {
 }
 
 /**
- * Queries eBay, Amazon, Best Buy, Walmart, and Target strictly in parallel
- * for `query` via `Promise.allSettled`, so one slow or failing store (each
- * capped at `REQUEST_TIMEOUT_MS`) never delays or breaks the others — a
- * rejected store lands in `errors` instead of throwing, and the rest of
- * `items` still loads.
+ * Runs one combined Serper Shopping search for `query`, then buckets the
+ * results by retailer (dropping any that aren't one of the five ReSmart
+ * tracks) and caps each store at `perStoreLimit` — so one product doesn't
+ * crowd out another store's cards. A failed search fails every store
+ * uniformly and lands in `errors`, since there's only one upstream call to fail.
  */
 export async function fetchAllStores(
   query: string,
@@ -395,31 +166,28 @@ export async function fetchAllStores(
     Math.max(MIN_PER_STORE_RESULTS, Math.ceil(limit / ALL_STORES.length)),
   );
 
-  const settled = await Promise.allSettled([
-    fetchEbayListings(query, perStoreLimit),
-    fetchAmazonListings(query, perStoreLimit),
-    fetchBestBuyListings(query, perStoreLimit),
-    fetchWalmartListings(query, perStoreLimit),
-    fetchTargetListings(query, perStoreLimit),
-  ]);
+  try {
+    const raw = await fetchShoppingResults(query);
 
-  const items: Product[] = [];
-  const errors: StoreError[] = [];
-
-  settled.forEach((result, i) => {
-    const store = ALL_STORES[i];
-    if (result.status === "fulfilled") {
-      items.push(...result.value);
-    } else {
-      errors.push({ store, message: (result.reason as Error).message });
+    const byStore = new Map<Store, Product[]>();
+    for (const item of raw) {
+      const bucket = byStore.get(item.store) ?? [];
+      if (bucket.length < perStoreLimit) {
+        bucket.push(item);
+        byStore.set(item.store, bucket);
+      }
     }
-  });
 
-  return { items: shuffle(items).slice(0, limit), errors };
+    const items = ALL_STORES.flatMap((store) => byStore.get(store) ?? []);
+    return { items: shuffle(items).slice(0, limit), errors: [] };
+  } catch (error) {
+    const message = (error as Error).message;
+    return { items: [], errors: ALL_STORES.map((store) => ({ store, message })) };
+  }
 }
 
 /**
- * Fetches several category queries in parallel (each across all four
+ * Fetches several category queries in parallel (each across all five
  * stores), dedupes, and shuffles into one diverse feed — used for the
  * homepage when no search term is given.
  */

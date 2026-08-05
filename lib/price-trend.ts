@@ -7,7 +7,7 @@ export type PriceTrend = {
 };
 
 /**
- * The RapidAPI feeds are a live snapshot, not a historical price series —
+ * The Serper Shopping feed is a live snapshot, not a historical price series —
  * there's no real "90-day trend" to show for a marketplace search result.
  * Rather than fabricate one, this builds the most honest visual available
  * from what's on hand:
