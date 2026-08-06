@@ -12,15 +12,11 @@ import {
 } from "lucide-react";
 import { MerchantHeader } from "@/components/merchants/merchant-header";
 import { buttonStyles } from "@/components/ui/button-styles";
-import {
-  COMMISSION_RATE,
-  CPC_MAX,
-  CPC_MIN,
-  SUBSCRIPTION_FEE,
-} from "@/lib/mock-merchant";
+import { CPC_MAX, CPC_MIN, SUBSCRIPTION_FEE } from "@/lib/mock-merchant";
 import { formatCurrency } from "@/lib/utils";
 
-const COMMISSION_PCT = Math.round(COMMISSION_RATE * 100);
+/** Marketing-page rate — intentionally not derived from lib/mock-merchant's COMMISSION_RATE, which still drives dashboard/wallet/analytics math. */
+const COMMISSION_PCT = 4;
 const CPC_RANGE = `${formatCurrency(CPC_MIN, { cents: true })}–${formatCurrency(
   CPC_MAX,
   { cents: true },
@@ -48,7 +44,7 @@ const BENEFITS = [
   {
     icon: MousePointerClick,
     title: "Optional CPC boost",
-    description: `Want priority ranking? Bid ${CPC_RANGE} per click to sponsor a listing. Entirely optional — unboosted listings still rank on price and condition.`,
+    description: `Want priority ranking? Bid ${CPC_RANGE} per day to sponsor a listing. Entirely optional — unboosted listings still rank on price and condition.`,
   },
   {
     icon: Target,
@@ -93,7 +89,7 @@ const STEPS = [
   },
   {
     title: `Pay ${SUBSCRIPTION_PRICE}/mo + ${COMMISSION_PCT}% when it sells`,
-    body: `The membership keeps your storefront live; commission is taken only on completed sales. Add a ${CPC_RANGE} CPC boost if you want priority ranking — that part is optional.`,
+    body: `The membership keeps your storefront live; commission is taken only on completed sales. Add a ${CPC_RANGE} daily boost if you want priority ranking — that part is optional.`,
   },
 ];
 
@@ -273,7 +269,7 @@ export default function MerchantsPage() {
                 <p className="font-mono text-4xl font-semibold tabular-nums text-accent-strong">
                   {CPC_RANGE}
                   <span className="ml-1 font-sans text-base font-normal text-muted-foreground">
-                    / click
+                    / day
                   </span>
                 </p>
                 <p className="text-sm leading-relaxed text-muted">
@@ -288,7 +284,7 @@ export default function MerchantsPage() {
               <p className="max-w-lg text-sm text-muted-foreground">
                 Every merchant pays {SUBSCRIPTION_PRICE}/mo plus{" "}
                 {COMMISSION_PCT}% when an item sells; a boosted listing also
-                pays your bid on each click it receives.
+                pays your bid for each day it&apos;s active.
               </p>
               <Link
                 href="/merchants/dashboard"

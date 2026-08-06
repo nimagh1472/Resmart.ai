@@ -1,47 +1,50 @@
-const FULFILLMENT_LABEL = {
-  online: "Online",
-  instore: "In-store",
-  both: "Online or in-store",
-};
-
 function escapeHtml(str) {
   const div = document.createElement("div");
   div.textContent = str ?? "";
   return div.innerHTML;
 }
 
-function render(entry) {
+function renderDeal(entry) {
   const root = document.getElementById("root");
 
   if (!entry) {
     root.innerHTML =
-      '<p class="empty">Visit a product page on Amazon, eBay, or Facebook Marketplace to check for a cheaper alternative.</p>';
+      '<p class="empty">Visit a product page on Amazon, Target, or Best Buy to check for a cheaper open-box or refurbished option.</p>';
     return;
   }
 
-  const { title, result } = entry;
-  const internal = result?.internalResults ?? [];
-  const web = result?.webResults ?? [];
-  // Internal ReSmart merchants are already priority-sorted by the API.
-  const cheapest = internal[0];
-
+  const { title, cheapestDeal } = entry;
   let html = `<p class="title">${escapeHtml(title)}</p>`;
 
-  if (cheapest) {
+  if (cheapestDeal) {
     html += `
       <div class="alert">
-        <p class="alert-title">Cheaper alternative found</p>
-        <p class="alert-body">${escapeHtml(cheapest.title)} — $${Number(cheapest.price).toFixed(2)}</p>
-        <p class="alert-meta">${FULFILLMENT_LABEL[cheapest.fulfillmentType] ?? ""}</p>
-        ${cheapest.link ? `<a href="${escapeHtml(cheapest.link)}" target="_blank" rel="noopener">View deal</a>` : ""}
+        <p class="alert-title">${escapeHtml(cheapestDeal.condition)} available</p>
+        <p class="alert-body">$${cheapestDeal.price.toFixed(2)} at ${escapeHtml(cheapestDeal.store)}</p>
+        <p class="alert-meta">via ReSmart</p>
+        <a href="${escapeHtml(cheapestDeal.url)}" target="_blank" rel="noopener">View deal</a>
       </div>`;
   } else {
-    html += `<p class="empty">No ReSmart merchant match yet — showing ${web.length} web result${web.length === 1 ? "" : "s"}.</p>`;
+    html += '<p class="empty">No cheaper open-box or refurbished match found yet.</p>';
   }
 
   root.innerHTML = html;
 }
 
-chrome.storage.local.get("resmartLastQuery", ({ resmartLastQuery }) => {
-  render(resmartLastQuery);
+function loadZip() {
+  chrome.storage.local.get(RESMART_CONFIG.ZIP_STORAGE_KEY, (data) => {
+    document.getElementById("zip-input").value = data[RESMART_CONFIG.ZIP_STORAGE_KEY] ?? "";
+  });
+}
+
+function saveZip() {
+  const zip = document.getElementById("zip-input").value.replace(/[^0-9]/g, "").slice(0, 5);
+  chrome.storage.local.set({ [RESMART_CONFIG.ZIP_STORAGE_KEY]: zip });
+}
+
+document.getElementById("zip-save").addEventListener("click", saveZip);
+loadZip();
+
+chrome.storage.local.get(RESMART_CONFIG.LAST_QUERY_STORAGE_KEY, (data) => {
+  renderDeal(data[RESMART_CONFIG.LAST_QUERY_STORAGE_KEY]);
 });

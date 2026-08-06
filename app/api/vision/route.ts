@@ -404,6 +404,9 @@ function buildMatches(extraction: Extraction) {
     savings: product.msrp - product.price,
     retailer: product.retailer,
     offerCount: product.offers.length,
+    // Best-value offer's outbound link — `offers` is always non-empty and
+    // pre-sorted by `sortOffersByValue`, so index 0 is the one to buy.
+    dealUrl: product.offers[0].dealUrl,
     matchedFields,
   });
 

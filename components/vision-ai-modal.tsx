@@ -5,8 +5,9 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
-  ArrowRight,
+  BellRing,
   CheckCircle2,
+  ExternalLink,
   ImageUp,
   Link2,
   Loader2,
@@ -17,7 +18,12 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Badge, ConditionBadge, type ProductCondition } from "@/components/ui/badge";
 import { productHref } from "@/components/ProductCard";
-import { cn, formatCurrency } from "@/lib/utils";
+import { useVip } from "@/components/vip-modal";
+import { MOCK_USER } from "@/lib/mock-account";
+import { cn, formatCurrency, safeExternalUrl } from "@/lib/utils";
+
+/** Where a tracked scan result is stashed — this demo has no account-wide store for it. */
+const TRACKED_DEALS_KEY = "resmart:tracked-deals";
 
 /* ------------------------------------------------------------------ */
 /* API contract — mirrors /app/api/vision/route.ts                     */
@@ -53,6 +59,8 @@ type CatalogMatch = {
   price: number;
   savings: number;
   offerCount: number;
+  /** Outbound link to the best-value offer for this match. */
+  dealUrl: string;
 };
 
 type ProjectedOffer = {
@@ -62,6 +70,8 @@ type ProjectedOffer = {
   price: number;
   shipping: number;
   stock: string;
+  /** Outbound link to the projected merchant's storefront. */
+  dealUrl: string;
 };
 
 type ScanResult = {
@@ -458,6 +468,31 @@ function ResultPanel({
 
   const specs = Object.entries(x.specifications).filter(([, v]) => v);
 
+  const { openVip } = useVip();
+  const [tracked, setTracked] = useState(false);
+
+  const trackProduct = () => {
+    if (MOCK_USER.tier !== "vip") {
+      openVip();
+      return;
+    }
+    if (tracked) return;
+
+    try {
+      const stored = JSON.parse(localStorage.getItem(TRACKED_DEALS_KEY) ?? "[]");
+      localStorage.setItem(
+        TRACKED_DEALS_KEY,
+        JSON.stringify([
+          ...(Array.isArray(stored) ? stored : []),
+          { title: x.productName, targetPrice: bestPrice, savedOn: new Date().toISOString() },
+        ]),
+      );
+    } catch {
+      // Private browsing or storage disabled — tracking still confirms for this session.
+    }
+    setTracked(true);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -543,7 +578,7 @@ function ResultPanel({
       {/* Matches ------------------------------------------------------ */}
       <div className="flex flex-col gap-2">
         <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-          {inStock ? "In stock now" : "Projected open-box pricing"}
+          {inStock ? "Compare — in stock now" : "Compare — projected open-box pricing"}
         </p>
 
         {inStock
@@ -553,31 +588,32 @@ function ResultPanel({
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.08 * i, duration: 0.25 }}
+                className={cn(
+                  "flex items-center justify-between gap-3 rounded-xl border bg-surface p-3",
+                  i === 0 ? "border-accent/40 shadow-glow" : "border-surface-border",
+                )}
               >
                 <Link
                   href={productHref(m.id)}
-                  className={cn(
-                    "flex items-center justify-between gap-3 rounded-xl border bg-surface p-3 transition hover:border-accent/40",
-                    i === 0 ? "border-accent/40 shadow-glow" : "border-surface-border",
-                  )}
+                  className="flex min-w-0 flex-1 flex-col gap-1.5 hover:opacity-80"
                 >
-                  <div className="flex min-w-0 flex-col gap-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate font-medium">{m.title}</span>
-                      {i === 0 && (
-                        <Badge tone="emerald" size="sm">
-                          Best match
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <ConditionBadge condition={m.condition} size="sm" />
-                      <span className="text-xs text-muted-foreground">
-                        {m.offerCount} offer{m.offerCount === 1 ? "" : "s"}
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <span className="truncate font-medium">{m.title}</span>
+                    {i === 0 && (
+                      <Badge tone="emerald" size="sm">
+                        Best match
+                      </Badge>
+                    )}
                   </div>
-                  <div className="flex shrink-0 flex-col items-end">
+                  <div className="flex items-center gap-2">
+                    <ConditionBadge condition={m.condition} size="sm" />
+                    <span className="text-xs text-muted-foreground">
+                      {m.offerCount} offer{m.offerCount === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                </Link>
+                <div className="flex shrink-0 items-center gap-3">
+                  <div className="flex flex-col items-end">
                     <span className="font-mono text-lg font-medium tabular-nums">
                       {formatCurrency(m.price)}
                     </span>
@@ -585,7 +621,8 @@ function ResultPanel({
                       −{formatCurrency(m.savings)}
                     </span>
                   </div>
-                </Link>
+                  <BuyLink href={m.dealUrl} label="Buy" primary={i === 0} />
+                </div>
               </motion.div>
             ))
           : projectedOffers.map((offer, i) => (
@@ -608,10 +645,11 @@ function ResultPanel({
                     </span>
                   </div>
                 </div>
-                <div className="flex shrink-0 flex-col items-end">
+                <div className="flex shrink-0 items-center gap-3">
                   <span className="font-mono text-lg font-medium tabular-nums">
                     {formatCurrency(offer.price)}
                   </span>
+                  <BuyLink href={offer.dealUrl} label="View Deal" primary={i === 0} />
                 </div>
               </motion.div>
             ))}
@@ -653,24 +691,57 @@ function ResultPanel({
       )}
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        {inStock ? (
-          <Link
-            href={productHref(catalogMatches[0].id)}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent-gradient px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
-          >
-            Compare offers
-            <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
-        ) : (
-          <Button fullWidth rightIcon={<ArrowRight className="h-4 w-4" />}>
-            Track this product
-          </Button>
-        )}
+        <Button
+          fullWidth
+          variant={tracked ? "secondary" : "primary"}
+          disabled={tracked}
+          onClick={trackProduct}
+          leftIcon={
+            tracked ? (
+              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <BellRing className="h-4 w-4" aria-hidden="true" />
+            )
+          }
+        >
+          {tracked ? "Tracking price drops" : "Track this product"}
+        </Button>
         <Button variant="secondary" fullWidth onClick={onReset}>
           Scan another
         </Button>
       </div>
     </motion.div>
+  );
+}
+
+/** Outbound link for one comparison row — "Buy" for live inventory, "View Deal" for a projection. */
+function BuyLink({
+  href,
+  label,
+  primary,
+}: {
+  href: string;
+  label: string;
+  primary: boolean;
+}) {
+  const safe = safeExternalUrl(href);
+  if (!safe) return null;
+
+  return (
+    <a
+      href={safe}
+      target="_blank"
+      rel="nofollow sponsored noopener noreferrer"
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition",
+        primary
+          ? "border-accent bg-accent-gradient text-white hover:opacity-90"
+          : "border-accent/40 bg-accent-soft text-accent-strong hover:border-accent hover:bg-accent/15",
+      )}
+    >
+      {label}
+      <ExternalLink className="h-3 w-3" aria-hidden="true" />
+    </a>
   );
 }
 

@@ -1,27 +1,28 @@
 {
   "manifest_version": 3,
-  "name": "ReSmart VIP",
+  "name": "ReSmart",
   "version": "0.1.0",
-  "description": "Flags cheaper open-box and refurbished alternatives while you shop on Amazon, eBay, and Facebook Marketplace.",
-  "permissions": ["activeTab", "scripting", "storage"],
+  "description": "Flags cheaper open-box and refurbished alternatives while you shop on Amazon, Target, and Best Buy.",
+  "permissions": ["storage"],
   "host_permissions": [
     "https://*.amazon.com/*",
-    "https://*.ebay.com/*",
-    "https://*.facebook.com/marketplace/*"
+    "https://*.target.com/*",
+    "https://*.bestbuy.com/*",
+    "http://localhost:3000/*"
   ],
   "content_scripts": [
     {
       "matches": [
         "https://*.amazon.com/*",
-        "https://*.ebay.com/*",
-        "https://*.facebook.com/marketplace/*"
+        "https://*.target.com/*",
+        "https://*.bestbuy.com/*"
       ],
-      "js": ["content.js"],
+      "js": ["config.js", "content.js"],
       "run_at": "document_idle"
     }
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "ReSmart VIP"
+    "default_title": "ReSmart"
   }
 }

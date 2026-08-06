@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { CONDITIONS } from "@/components/ui/badge";
 import type { CardCondition } from "@/lib/catalog";
 import {
   ACCEPTED_IMAGE_TYPES,
@@ -30,10 +29,41 @@ import {
 } from "@/lib/mock-merchant";
 import { cn, formatCurrency } from "@/lib/utils";
 
-/** The two grades ReSmart surfaces, labelled as merchants refer to them. */
-const CONDITION_OPTIONS: { value: CardCondition; label: string }[] = [
-  { value: "open-box-excellent", label: "Open-Box" },
-  { value: "certified-refurbished", label: "Refurbished" },
+/**
+ * The four conditions a merchant can list under. Kept as their own vocabulary
+ * rather than reusing the storefront's `CardCondition` (brand-new /
+ * open-box-excellent / certified-refurbished / like-new) — the two serve
+ * different audiences and don't need to line up 1:1. `condition` is cast to
+ * `CardCondition` only at submit time, so `ListingDraft`'s exported shape
+ * (and every other merchant file that consumes it) is unaffected.
+ */
+type ListingCondition = "new" | "open-box" | "refurbished" | "used";
+
+const CONDITION_OPTIONS: {
+  value: ListingCondition;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: "new",
+    label: "Brand New",
+    description: "Factory-sealed, unopened, never used.",
+  },
+  {
+    value: "open-box",
+    label: "Open-Box",
+    description: "Opened but unused, in as-new cosmetic condition.",
+  },
+  {
+    value: "refurbished",
+    label: "Refurbished",
+    description: "Professionally restored and tested to manufacturer spec.",
+  },
+  {
+    value: "used",
+    label: "Used",
+    description: "Previously owned, tested and functional.",
+  },
 ];
 
 /** Everything a merchant supplies; ids and metrics are assigned by the server. */
@@ -57,7 +87,7 @@ type Errors = Partial<Record<FieldKey, string>>;
 const BLANK = {
   title: "",
   description: "",
-  condition: "open-box-excellent" as CardCondition,
+  condition: "open-box" as ListingCondition,
   msrp: "",
   price: "",
   stock: "",
@@ -159,8 +189,8 @@ export function InventoryForm({
   const [description, setDescription] = useState(
     initial?.description ?? BLANK.description,
   );
-  const [condition, setCondition] = useState<CardCondition>(
-    initial?.condition ?? BLANK.condition,
+  const [condition, setCondition] = useState<ListingCondition>(
+    (initial?.condition as unknown as ListingCondition) ?? BLANK.condition,
   );
   const [msrp, setMsrp] = useState(
     initial ? String(initial.msrp) : BLANK.msrp,
@@ -336,8 +366,8 @@ export function InventoryForm({
     if (!price.trim() || Number.isNaN(priceNum) || priceNum <= 0) {
       next.price = "Enter a price greater than zero.";
     } else if (msrpNum > 0 && priceNum > msrpNum) {
-      // An open-box price above MSRP isn't a deal — it's a data error.
-      next.price = "Open-box price must be at or below MSRP.";
+      // A selling price above MSRP isn't a deal — it's a data error.
+      next.price = "Selling price must be at or below MSRP.";
     }
 
     const stockNum = Number(stock);
@@ -376,7 +406,7 @@ export function InventoryForm({
     onSubmit({
       title: title.trim(),
       description: description.trim() || undefined,
-      condition,
+      condition: condition as unknown as CardCondition,
       msrp: msrpNum,
       price: priceNum,
       stock: Number(stock),
@@ -432,7 +462,7 @@ export function InventoryForm({
                 type="button"
                 aria-pressed={active}
                 onClick={() => setCondition(opt.value)}
-                title={CONDITIONS[opt.value].description}
+                title={opt.description}
                 className={cn(
                   "rounded-xl border px-3 py-2.5 text-sm transition",
                   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
@@ -463,7 +493,7 @@ export function InventoryForm({
           error={errors.msrp}
         />
         <Field
-          label="Open-box price"
+          label="Selling price"
           id="listing-price"
           value={price}
           onChange={setPrice}
